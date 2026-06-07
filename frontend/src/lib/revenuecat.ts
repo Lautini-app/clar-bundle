@@ -21,10 +21,10 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 const RC_API_KEY = process.env.EXPO_PUBLIC_RC_IOS_API_KEY ?? "";
 
 export const PRODUCT_IDS = {
-  single_monthly: "clar_single_monthly",
-  single_yearly: "clar_single_yearly",
-  bundle_monthly: "clar_bundle_monthly",
-  bundle_yearly: "clar_bundle_yearly",
+  single_monthly: "ch.lautini.clar.1app.monthly",
+  single_yearly: "ch.lautini.clar.1app.yearly",
+  bundle_monthly: "ch.lautini.clar.2apps.monthly",
+  bundle_yearly: "ch.lautini.clar.2apps.yearly",
 } as const;
 
 export const ENTITLEMENTS = {
