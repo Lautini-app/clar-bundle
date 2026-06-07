@@ -1,19 +1,25 @@
 /**
  * RevenueCat integration with safe Expo Go / Web fallback.
  *
- * Real RC runs ONLY in a native build (TestFlight / Production / Dev Client)
- * with the SDK linked. Expo Go on iOS LOOKS like iOS (Platform.OS === 'ios')
- * but does NOT have the native module — we must detect that and fall back.
+ * Real RC runs ONLY in a native build (TestFlight / Production / Dev Client).
+ * Expo Go on iOS LOOKS like iOS (Platform.OS === 'ios') but does NOT have
+ * the native module — we must detect that and fall back.
  *
  * Product map (matches App Store Connect IAP IDs):
- *   single_app + monthly  →  clar_single_monthly  (CHF 4)
- *   single_app + yearly   →  clar_single_yearly   (CHF 30)
- *   bundle     + monthly  →  clar_bundle_monthly  (CHF 6)
- *   bundle     + yearly   →  clar_bundle_yearly   (CHF 50)
+ *   1app    + monthly  →  ch.lautini.clar.1app.monthly   (CHF 4)
+ *   1app    + yearly   →  ch.lautini.clar.1app.yearly    (CHF 30)
+ *   2apps   + monthly  →  ch.lautini.clar.2apps.monthly  (CHF 6)
+ *   2apps   + yearly   →  ch.lautini.clar.2apps.yearly   (CHF 50)
  *
- * Entitlement identifiers in RevenueCat:
- *   - "single_app"  (attached to single_* products)
- *   - "bundle"      (attached to bundle_* products)
+ * Entitlement identifiers in RevenueCat (per-app model):
+ *   - "heim"      →  unlocks clar·heim
+ *   - "markt"     →  unlocks clar·markt
+ *   - "clar.app"  →  generic all-access (treated as bundle)
+ *
+ * Access rules (consumed by SubscriptionContext):
+ *   - clar·heim accessible  if user has  "heim"  OR "clar.app"
+ *   - clar·markt accessible if user has  "markt" OR "clar.app"
+ *   - Bundle = user has "clar.app" OR (BOTH "heim" AND "markt")
  */
 import { Platform } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
@@ -27,26 +33,34 @@ export const PRODUCT_IDS = {
   bundle_yearly: "ch.lautini.clar.2apps.yearly",
 } as const;
 
+/** RevenueCat entitlement identifiers (per-app model). */
 export const ENTITLEMENTS = {
-  singleApp: "single_app",
-  bundle: "bundle",
+  heim: "heim",
+  markt: "markt",
+  clarApp: "clar.app",
 } as const;
 
 export type RcEntitlementSnapshot = {
-  hasBundle: boolean;
-  hasSingleApp: boolean;
+  heim: boolean;
+  markt: boolean;
+  clarApp: boolean;
   activeProductId: string | null;
+};
+
+const EMPTY_SNAP: RcEntitlementSnapshot = {
+  heim: false,
+  markt: false,
+  clarApp: false,
+  activeProductId: null,
 };
 
 let _rcAvailable: boolean | null = null;
 let _rcConfigured = false;
 
-/** True only inside Expo Go (no native modules) */
 function isExpoGo(): boolean {
   return Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 }
 
-/** True in a native iOS build (TestFlight / App Store / dev client). */
 export function isNativeBuild(): boolean {
   return Platform.OS === "ios" && !isExpoGo();
 }
@@ -59,6 +73,23 @@ async function loadPurchases() {
   } catch {
     return null;
   }
+}
+
+function snapFromActive(active: Record<string, any> | undefined): RcEntitlementSnapshot {
+  if (!active) return { ...EMPTY_SNAP };
+  const heim = active[ENTITLEMENTS.heim];
+  const markt = active[ENTITLEMENTS.markt];
+  const clarApp = active[ENTITLEMENTS.clarApp];
+  return {
+    heim: !!heim,
+    markt: !!markt,
+    clarApp: !!clarApp,
+    activeProductId:
+      clarApp?.productIdentifier ??
+      heim?.productIdentifier ??
+      markt?.productIdentifier ??
+      null,
+  };
 }
 
 export async function configureRevenueCat(supabaseUserId?: string | null) {
@@ -107,22 +138,16 @@ export async function rcLogin(supabaseUserId: string) {
   if (!isRevenueCatAvailable()) return;
   const Purchases = await loadPurchases();
   if (!Purchases) return;
-  try {
-    await Purchases.logIn(supabaseUserId);
-  } catch (e) {
-    if (__DEV__) console.warn("[clar] RC logIn failed", e);
-  }
+  try { await Purchases.logIn(supabaseUserId); }
+  catch (e) { if (__DEV__) console.warn("[clar] RC logIn failed", e); }
 }
 
 export async function rcLogout() {
   if (!isRevenueCatAvailable()) return;
   const Purchases = await loadPurchases();
   if (!Purchases) return;
-  try {
-    await Purchases.logOut();
-  } catch (e) {
-    if (__DEV__) console.warn("[clar] RC logOut failed", e);
-  }
+  try { await Purchases.logOut(); }
+  catch (e) { if (__DEV__) console.warn("[clar] RC logOut failed", e); }
 }
 
 export async function getEntitlements(): Promise<RcEntitlementSnapshot | null> {
@@ -131,15 +156,7 @@ export async function getEntitlements(): Promise<RcEntitlementSnapshot | null> {
   if (!Purchases) return null;
   try {
     const info = await Purchases.getCustomerInfo();
-    const ents = info?.entitlements?.active ?? {};
-    const bundleEnt = ents[ENTITLEMENTS.bundle];
-    const singleEnt = ents[ENTITLEMENTS.singleApp];
-    return {
-      hasBundle: !!bundleEnt,
-      hasSingleApp: !!singleEnt,
-      activeProductId:
-        bundleEnt?.productIdentifier ?? singleEnt?.productIdentifier ?? null,
-    };
+    return snapFromActive(info?.entitlements?.active);
   } catch (e) {
     if (__DEV__) console.warn("[clar] RC getCustomerInfo failed", e);
     return null;
@@ -147,7 +164,7 @@ export async function getEntitlements(): Promise<RcEntitlementSnapshot | null> {
 }
 
 export type PurchaseOutcome =
-  | { ok: true; productId: string; hasBundle: boolean; hasSingleApp: boolean }
+  | { ok: true; productId: string; entitlements: RcEntitlementSnapshot }
   | { ok: false; cancelled: boolean; productNotFound: boolean; error?: string };
 
 export async function purchaseProduct(productId: string): Promise<PurchaseOutcome> {
@@ -159,8 +176,6 @@ export async function purchaseProduct(productId: string): Promise<PurchaseOutcom
     return { ok: false, cancelled: false, productNotFound: false, error: "RC module missing" };
   }
   try {
-    // Prefer purchaseStoreProduct (works for IAPs not yet in any offering),
-    // fall back to purchaseProduct for older SDKs.
     let result: any;
     if (typeof Purchases.getProducts === "function") {
       const products = await Purchases.getProducts([productId]).catch(() => []);
@@ -180,12 +195,10 @@ export async function purchaseProduct(productId: string): Promise<PurchaseOutcom
     } else {
       result = await Purchases.purchaseProduct(productId);
     }
-    const ents = result?.customerInfo?.entitlements?.active ?? {};
     return {
       ok: true,
       productId,
-      hasBundle: !!ents[ENTITLEMENTS.bundle],
-      hasSingleApp: !!ents[ENTITLEMENTS.singleApp],
+      entitlements: snapFromActive(result?.customerInfo?.entitlements?.active),
     };
   } catch (e: any) {
     const msg = e?.message ?? String(e);
@@ -201,15 +214,7 @@ export async function restorePurchases(): Promise<RcEntitlementSnapshot | null> 
   if (!Purchases) return null;
   try {
     const info = await Purchases.restorePurchases();
-    const ents = info?.entitlements?.active ?? {};
-    return {
-      hasBundle: !!ents[ENTITLEMENTS.bundle],
-      hasSingleApp: !!ents[ENTITLEMENTS.singleApp],
-      activeProductId:
-        ents[ENTITLEMENTS.bundle]?.productIdentifier ??
-        ents[ENTITLEMENTS.singleApp]?.productIdentifier ??
-        null,
-    };
+    return snapFromActive(info?.entitlements?.active);
   } catch (e) {
     if (__DEV__) console.warn("[clar] RC restore failed", e);
     return null;
@@ -218,4 +223,29 @@ export async function restorePurchases(): Promise<RcEntitlementSnapshot | null> 
 
 export function productIdFor(plan: "single" | "bundle", period: "monthly" | "yearly"): string {
   return PRODUCT_IDS[`${plan}_${period}`];
+}
+
+/**
+ * Pure access-rule helpers (used by SubscriptionContext + tests).
+ */
+export function snapshotUnlocksApp(snap: RcEntitlementSnapshot | null, slug: string): boolean {
+  if (!snap) return false;
+  if (snap.clarApp) return true;
+  if (slug === "heim" && snap.heim) return true;
+  if (slug === "markt" && snap.markt) return true;
+  return false;
+}
+
+export function snapshotIsBundle(snap: RcEntitlementSnapshot | null): boolean {
+  if (!snap) return false;
+  return snap.clarApp || (snap.heim && snap.markt);
+}
+
+export function snapshotAppsUnlocked(snap: RcEntitlementSnapshot | null): string[] {
+  if (!snap) return [];
+  if (snap.clarApp) return ["heim", "markt"];
+  const out: string[] = [];
+  if (snap.heim) out.push("heim");
+  if (snap.markt) out.push("markt");
+  return out;
 }

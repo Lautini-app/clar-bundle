@@ -9,7 +9,7 @@
  */
 import { Platform } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { isNativeBuild, isRevenueCatAvailable } from "./revenuecat";
+import { isNativeBuild, isRevenueCatAvailable, getEntitlements } from "./revenuecat";
 
 export type DiagItem = { label: string; value: string; ok: boolean };
 
@@ -19,7 +19,7 @@ function mask(value: string | undefined | null): string {
   return `${value.slice(0, 8)}…${value.slice(-4)} (${value.length})`;
 }
 
-export function getDiagnostics(): DiagItem[] {
+export async function getDiagnostics(): Promise<DiagItem[]> {
   const execEnv = Constants.executionEnvironment ?? "unknown";
   const inExpoGo = execEnv === ExecutionEnvironment.StoreClient;
   const native = isNativeBuild();
@@ -28,12 +28,18 @@ export function getDiagnostics(): DiagItem[] {
   const sbKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
   const rcAvailable = isRevenueCatAvailable();
 
+  // Live entitlement snapshot — only meaningful on native build.
+  const ents = rcAvailable ? await getEntitlements() : null;
+
   return [
     { label: "Plattform", value: Platform.OS, ok: true },
     { label: "Build-Typ", value: execEnv, ok: !inExpoGo },
     { label: "Native iOS Build", value: native ? "ja" : "nein", ok: native },
     { label: "RevenueCat aktiv", value: rcAvailable ? "ja" : "nein", ok: rcAvailable },
     { label: "RC API Key", value: mask(rcKey), ok: !!rcKey && rcKey.startsWith("appl_") },
+    { label: "Entitlement: heim", value: ents?.heim ? "aktiv" : "—", ok: !!ents?.heim },
+    { label: "Entitlement: markt", value: ents?.markt ? "aktiv" : "—", ok: !!ents?.markt },
+    { label: "Entitlement: clar.app", value: ents?.clarApp ? "aktiv" : "—", ok: !!ents?.clarApp },
     { label: "Supabase URL", value: sbUrl ? new URL(sbUrl).host : "—", ok: !!sbUrl },
     { label: "Supabase Anon Key", value: mask(sbKey), ok: !!sbKey },
     { label: "App-Version", value: Constants.expoConfig?.version ?? "—", ok: true },

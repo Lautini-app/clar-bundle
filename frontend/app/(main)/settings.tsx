@@ -101,10 +101,20 @@ export default function Settings() {
 
 function Diagnostics() {
   const [open, setOpen] = useState(false);
-  const items = open ? getDiagnostics() : [];
+  const [items, setItems] = useState<Array<{ label: string; value: string; ok: boolean }>>([]);
+
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next) {
+      const data = await getDiagnostics();
+      setItems(data);
+    }
+  };
+
   return (
     <View style={styles.diagWrap}>
-      <Pressable testID="diagnostics-toggle" onPress={() => setOpen((v) => !v)} style={styles.diagHeader}>
+      <Pressable testID="diagnostics-toggle" onPress={toggle} style={styles.diagHeader}>
         <Text style={styles.diagHeaderText}>Diagnose</Text>
         <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={colors.inkSoft} />
       </Pressable>
@@ -118,9 +128,9 @@ function Diagnostics() {
             </View>
           ))}
           <Text style={styles.diagHint}>
-            Erwartet im TestFlight: alle grünen Punkte. Wenn "RevenueCat aktiv = nein"
-            steht obwohl native iOS Build = ja → react-native-purchases nicht gelinkt
-            oder API Key fehlt im Build.
+            Erwartet im TestFlight nach Kauf: RevenueCat aktiv = ja, und
+            mindestens eines der drei Entitlements (heim / markt / clar.app)
+            sollte "aktiv" zeigen.
           </Text>
         </View>
       )}
