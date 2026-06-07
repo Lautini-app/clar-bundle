@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, User } from "../api/client";
 import { supabase } from "../lib/supabase";
+import { rcLogin, rcLogout } from "../lib/revenuecat";
 
 type AuthState = {
   user: User | null;
@@ -117,6 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase_access_token: supabaseAccessToken || null,
     });
     await api.setToken(res.token);
+    // Tie this device's RevenueCat anonymous purchases to the Supabase user.
+    await rcLogin(appleUserId);
     await refresh();
   }, [refresh]);
 
@@ -126,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* ignore */
     }
+    await rcLogout();
     await api.clearToken();
     await AsyncStorage.multiRemove([SB_ACCESS_KEY, SB_REFRESH_KEY]);
     setUser(null);

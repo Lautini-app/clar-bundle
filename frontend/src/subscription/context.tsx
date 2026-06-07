@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { Platform } from "react-native";
 import { api, SubscriptionStatus } from "../api/client";
 import { useAuth } from "../auth/context";
+import { purchaseProduct, productIdFor, restorePurchases as rcRestore } from "../lib/revenuecat";
 
 type SubState = {
   status: SubscriptionStatus | null;
@@ -10,6 +12,7 @@ type SubState = {
   refresh: () => Promise<void>;
   purchase: (plan: "single" | "bundle", period: "monthly" | "yearly", appSlug?: string) => Promise<void>;
   cancel: () => Promise<void>;
+  restore: () => Promise<void>;
 };
 
 const SubContext = createContext<SubState | undefined>(undefined);
@@ -48,20 +51,56 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const purchase = useCallback(
     async (plan: "single" | "bundle", period: "monthly" | "yearly", appSlug?: string) => {
-      const s = await api.purchase(plan, period, appSlug);
+      if (Platform.OS === "ios") {
+        // Real RevenueCat / Apple IAP flow
+        const productId = productIdFor(plan, period);
+        const outcome = await purchaseProduct(productId);
+        if (!outcome.ok) {
+          if (outcome.cancelled) return;
+          throw new Error(outcome.error ?? "Kauf fehlgeschlagen");
+        }
+        // Verify the granted entitlement matches the requested plan
+        const grantedBundle = outcome.hasBundle;
+        const grantedSingle = outcome.hasSingleApp;
+        if (plan === "bundle" && !grantedBundle) {
+          throw new Error("Bundle-Entitlement nicht erhalten");
+        }
+        if (plan === "single" && !grantedSingle && !grantedBundle) {
+          throw new Error("Single-Entitlement nicht erhalten");
+        }
+      }
+      // Record the purchase on shell backend (also runs as fallback on web preview).
+      // The slug only matters for the "single" plan — bundle unlocks everything.
+      const s = await api.purchase(plan, period, plan === "single" ? appSlug : undefined);
       setStatus(s);
     },
     []
   );
 
+  const restore = useCallback(async () => {
+    if (Platform.OS !== "ios") return;
+    const snap = await rcRestore();
+    if (!snap) return;
+    // If a valid entitlement is on this Apple ID, sync backend.
+    if (snap.hasBundle) {
+      const s = await api.purchase("bundle", "yearly");
+      setStatus(s);
+    } else if (snap.hasSingleApp) {
+      // We don't know the app_slug from RC alone — keep existing backend record.
+      await refresh();
+    }
+  }, [refresh]);
+
   const cancel = useCallback(async () => {
+    // Local-only cancellation. Real Apple subscriptions can only be cancelled
+    // via iOS Settings → Apple ID → Subscriptions. We just clear our mirror.
     await api.cancel();
     setStatus(null);
   }, []);
 
   return (
     <SubContext.Provider
-      value={{ status, isLoading, hasEntitlement, hasBundle, refresh, purchase, cancel }}
+      value={{ status, isLoading, hasEntitlement, hasBundle, refresh, purchase, cancel, restore }}
     >
       {children}
     </SubContext.Provider>

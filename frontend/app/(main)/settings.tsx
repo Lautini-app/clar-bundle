@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -54,7 +54,9 @@ export default function Settings() {
               <Row label="Preis" value={`CHF ${status.price_chf}`} />
               <Row label="Apps" value={status.apps_unlocked.join(", ")} />
               <Pressable testID="cancel-subscription" onPress={handleCancel} style={styles.dangerBtn}>
-                <Text style={styles.dangerText}>Abo kündigen (MOCK)</Text>
+                <Text style={styles.dangerText}>
+                  {Platform.OS === "ios" ? "Abo verwalten in iOS-Einstellungen" : "Abo kündigen"}
+                </Text>
               </Pressable>
             </>
           ) : (
@@ -63,6 +65,16 @@ export default function Settings() {
             </Text>
           )}
         </View>
+
+        {Platform.OS === "ios" && (
+          <Pressable testID="restore-purchases" style={styles.linkRow} onPress={handleRestore}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Ionicons name="refresh-outline" size={18} color={colors.ink} />
+              <Text style={styles.linkText}>Käufe wiederherstellen</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.inkMuted} />
+          </Pressable>
+        )}
 
         <Pressable testID="sign-out" style={styles.signOut} onPress={handleSignOut}>
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />
@@ -96,6 +108,8 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 14, color: colors.inkSoft },
   rowValue: { fontSize: 14, color: colors.ink, fontWeight: "600", maxWidth: "60%", textAlign: "right" },
   noPlan: { fontSize: 13, color: colors.inkSoft, lineHeight: 19 },
+  linkRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: colors.card, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, marginTop: spacing.sm },
+  linkText: { fontSize: 14, color: colors.ink, fontWeight: "600" },
   dangerBtn: { paddingVertical: 12, borderRadius: radius.pill, alignItems: "center", marginTop: spacing.sm, borderWidth: 1, borderColor: colors.danger },
   dangerText: { color: colors.danger, fontWeight: "700" },
   signOut: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, marginTop: spacing.lg },
