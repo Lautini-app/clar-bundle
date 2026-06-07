@@ -5,9 +5,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { api, ClarApp } from "@/src/api/client";
 import { useSubscription } from "@/src/subscription/context";
+import { isRevenueCatAvailable, isNativeBuild } from "@/src/lib/revenuecat";
 import { colors, spacing, radius } from "@/src/theme";
 
-const PRICES = { "single-monthly": 4, "single-yearly": 30, "bundle-monthly": 6, "bundle-yearly": 50 } as const;
+const PRICES = {
+  "single-monthly": 4,
+  "single-yearly": 30,
+  "bundle-monthly": 6,
+  "bundle-yearly": 50,
+} as const;
 
 export default function Paywall() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -17,21 +23,38 @@ export default function Paywall() {
   const [plan, setPlan] = useState<"single" | "bundle">("bundle");
   const [period, setPeriod] = useState<"monthly" | "yearly">("yearly");
   const [buying, setBuying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.listApps().then((apps) => setApp(apps.find((a) => a.slug === slug) ?? null));
   }, [slug]);
 
+  // Decide which note to show under the buy button:
+  // - Real Apple IAP via RevenueCat available → official IAP disclosure
+  // - Native build but RC not configured (rare) → setup hint
+  // - Web / Expo Go → MOCK note
+  const note = (() => {
+    if (isRevenueCatAvailable()) {
+      return "Wiederkehrendes Abo via Apple In-App-Purchase. Jederzeit in iOS-Einstellungen kündbar.";
+    }
+    if (isNativeBuild()) {
+      return "RevenueCat nicht initialisiert — prüfe API Key + react-native-purchases Link.";
+    }
+    return "Vorschau-Modus · Echter Kauf nur im nativen iOS-Build (TestFlight).";
+  })();
+
   const handleBuy = async () => {
+    setError(null);
     setBuying(true);
     try {
       await purchase(plan, period, plan === "single" ? slug : undefined);
-      // After successful purchase: go straight into the just-unlocked app
       if (slug) {
         router.replace({ pathname: "/(main)/app/[slug]", params: { slug } });
       } else {
         router.back();
       }
+    } catch (e: any) {
+      setError(e?.message ?? "Kauf fehlgeschlagen");
     } finally {
       setBuying(false);
     }
@@ -46,9 +69,7 @@ export default function Paywall() {
         <Text style={styles.heroTitle}>
           {app ? `${app.name} freischalten` : "Freischalten"}
         </Text>
-        <Text style={styles.heroSub}>
-          Wähle dein Abo. Jederzeit kündbar.
-        </Text>
+        <Text style={styles.heroSub}>Wähle dein Abo. Jederzeit kündbar.</Text>
       </View>
 
       <View style={styles.options}>
@@ -70,7 +91,9 @@ export default function Paywall() {
           onPress={() => setPlan("bundle")}
           style={[styles.opt, plan === "bundle" && styles.optActive]}
         >
-          <View style={styles.recBadge}><Text style={styles.recBadgeText}>Empf.</Text></View>
+          <View style={styles.recBadge}>
+            <Text style={styles.recBadgeText}>Empf.</Text>
+          </View>
           <Text style={[styles.optTitle, plan === "bundle" && { color: colors.cream }]}>Bundle</Text>
           <Text style={[styles.optDesc, plan === "bundle" && { color: colors.cream, opacity: 0.85 }]}>
             Alle clar·Apps
@@ -82,20 +105,44 @@ export default function Paywall() {
       </View>
 
       <View style={styles.toggle}>
-        <Pressable testID="paywall-monthly" onPress={() => setPeriod("monthly")} style={[styles.tb, period === "monthly" && styles.tbActive]}>
+        <Pressable
+          testID="paywall-monthly"
+          onPress={() => setPeriod("monthly")}
+          style={[styles.tb, period === "monthly" && styles.tbActive]}
+        >
           <Text style={[styles.tbText, period === "monthly" && styles.tbTextActive]}>Monatlich</Text>
         </Pressable>
-        <Pressable testID="paywall-yearly" onPress={() => setPeriod("yearly")} style={[styles.tb, period === "yearly" && styles.tbActive]}>
-          <Text style={[styles.tbText, period === "yearly" && styles.tbTextActive]}>Jährlich · spare 37%</Text>
+        <Pressable
+          testID="paywall-yearly"
+          onPress={() => setPeriod("yearly")}
+          style={[styles.tb, period === "yearly" && styles.tbActive]}
+        >
+          <Text style={[styles.tbText, period === "yearly" && styles.tbTextActive]}>
+            Jährlich · spare 37%
+          </Text>
         </Pressable>
       </View>
 
-      <Pressable testID="paywall-buy" style={[styles.cta, buying && { opacity: 0.5 }]} onPress={handleBuy} disabled={buying}>
-        {buying ? <ActivityIndicator color={colors.brand} /> : (
+      {error && (
+        <View style={styles.errorBox} testID="paywall-error">
+          <Ionicons name="alert-circle" size={16} color={colors.danger} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      <Pressable
+        testID="paywall-buy"
+        style={[styles.cta, buying && { opacity: 0.5 }]}
+        onPress={handleBuy}
+        disabled={buying}
+      >
+        {buying ? (
+          <ActivityIndicator color={colors.brand} />
+        ) : (
           <Text style={styles.ctaText}>Abonnieren — CHF {PRICES[`${plan}-${period}`]}</Text>
         )}
       </Pressable>
-      <Text style={styles.note}>MOCK Kauf · Im nativen iOS-Build via RevenueCat</Text>
+      <Text style={styles.note}>{note}</Text>
     </SafeAreaView>
   );
 }
@@ -119,7 +166,9 @@ const styles = StyleSheet.create({
   tbActive: { backgroundColor: colors.cream },
   tbText: { fontSize: 13, color: colors.cream, opacity: 0.8, fontWeight: "600" },
   tbTextActive: { color: colors.brand, opacity: 1, fontWeight: "700" },
+  errorBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#3a1f1f", borderRadius: radius.md, padding: spacing.sm, marginTop: spacing.md, borderWidth: 1, borderColor: colors.danger },
+  errorText: { color: "#FFCDCD", fontSize: 12, flex: 1, lineHeight: 17 },
   cta: { backgroundColor: colors.cream, paddingVertical: 16, borderRadius: radius.pill, alignItems: "center", marginTop: "auto", marginBottom: spacing.sm },
   ctaText: { color: colors.brand, fontSize: 16, fontWeight: "700" },
-  note: { fontSize: 10, color: colors.cream, opacity: 0.55, textAlign: "center", marginBottom: spacing.sm },
+  note: { fontSize: 10, color: colors.cream, opacity: 0.6, textAlign: "center", marginBottom: spacing.sm, paddingHorizontal: spacing.md, lineHeight: 14 },
 });

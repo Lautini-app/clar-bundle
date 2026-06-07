@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,11 +8,12 @@ import { useAuth } from "@/src/auth/context";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
 import { clearWebViewSession } from "@/src/webview/session";
+import { getDiagnostics } from "@/src/lib/diagnostics";
 
 export default function Settings() {
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const { status, cancel } = useSubscription();
+  const { status, cancel, restore } = useSubscription();
 
   const handleSignOut = async () => {
     // 1. Clear shell session
@@ -26,6 +28,14 @@ export default function Settings() {
 
   const handleCancel = async () => {
     await cancel();
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restore();
+    } catch (e) {
+      if (__DEV__) console.warn("[clar] restore failed", e);
+    }
   };
 
   return (
@@ -81,9 +91,40 @@ export default function Settings() {
           <Text style={styles.signOutText}>Abmelden</Text>
         </Pressable>
 
+        <Diagnostics />
+
         <Text style={styles.footer}>clar by lautini · v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function Diagnostics() {
+  const [open, setOpen] = useState(false);
+  const items = open ? getDiagnostics() : [];
+  return (
+    <View style={styles.diagWrap}>
+      <Pressable testID="diagnostics-toggle" onPress={() => setOpen((v) => !v)} style={styles.diagHeader}>
+        <Text style={styles.diagHeaderText}>Diagnose</Text>
+        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={colors.inkSoft} />
+      </Pressable>
+      {open && (
+        <View testID="diagnostics-list" style={styles.diagBody}>
+          {items.map((it) => (
+            <View key={it.label} style={styles.diagRow}>
+              <View style={styles.diagDot(it.ok)} />
+              <Text style={styles.diagLabel}>{it.label}</Text>
+              <Text style={styles.diagValue}>{it.value}</Text>
+            </View>
+          ))}
+          <Text style={styles.diagHint}>
+            Erwartet im TestFlight: alle grünen Punkte. Wenn "RevenueCat aktiv = nein"
+            steht obwohl native iOS Build = ja → react-native-purchases nicht gelinkt
+            oder API Key fehlt im Build.
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -114,5 +155,17 @@ const styles = StyleSheet.create({
   dangerText: { color: colors.danger, fontWeight: "700" },
   signOut: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, marginTop: spacing.lg },
   signOutText: { color: colors.danger, fontWeight: "700" },
+  diagWrap: { marginTop: spacing.lg, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
+  diagHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  diagHeaderText: { fontSize: 12, fontWeight: "700", color: colors.inkSoft, letterSpacing: 0.5, textTransform: "uppercase" },
+  diagBody: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.sm, gap: 6 },
+  diagRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  diagDot: (ok: boolean) => ({
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: ok ? colors.success : colors.danger,
+  }),
+  diagLabel: { fontSize: 12, color: colors.inkSoft, flex: 1 },
+  diagValue: { fontSize: 12, color: colors.ink, fontWeight: "600", maxWidth: "55%", textAlign: "right" },
+  diagHint: { fontSize: 10, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 14 },
   footer: { textAlign: "center", color: colors.inkMuted, fontSize: 11, marginTop: spacing.md },
 });

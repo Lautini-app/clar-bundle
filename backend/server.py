@@ -82,11 +82,11 @@ APPS_CATALOG = [
     ClarApp(slug="markt", name="clar·markt", tagline="Einkaufsplanung",
             description="Einkaufslisten, die mit dir mitdenken.",
             url="https://clar.markt.lautini.ch", icon="cart", color="#C97B3A", available=True),
-    ClarApp(slug="lern", name="clar·lern", tagline="Lernunterstützung für Kinder",
-            description="Kindgerechte Lernhilfe — bald verfügbar.",
+    ClarApp(slug="log", name="clar·log", tagline="Stimulanzien-Tagebuch",
+            description="Dokumentiere Dosis, Wirkung und Nebenwirkungen — bald verfügbar.",
             url="", icon="book", color="#5B7AAE", available=False),
-    ClarApp(slug="zeit", name="clar·zeit", tagline="Zeitmanagement für ADHS",
-            description="Ruhige Zeitstruktur für neurodiverse Köpfe.",
+    ClarApp(slug="tag", name="clar·tag", tagline="Tagesstruktur & Routinen",
+            description="Ruhige Tagesplanung für neurodiverse Köpfe — bald verfügbar.",
             url="", icon="time", color="#A85C7D", available=False),
 ]
 

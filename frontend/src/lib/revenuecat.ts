@@ -1,11 +1,11 @@
 /**
  * RevenueCat integration with safe Expo Go / Web fallback.
  *
- * - On native iOS we use react-native-purchases for real IAPs.
- * - On Web / Android Expo Go we no-op so the preview keeps working
- *   and the subscription context falls back to the mock backend.
+ * Real RC runs ONLY in a native build (TestFlight / Production / Dev Client)
+ * with the SDK linked. Expo Go on iOS LOOKS like iOS (Platform.OS === 'ios')
+ * but does NOT have the native module — we must detect that and fall back.
  *
- * Public product map (matches App Store Connect IAP IDs):
+ * Product map (matches App Store Connect IAP IDs):
  *   single_app + monthly  →  clar_single_monthly  (CHF 4)
  *   single_app + yearly   →  clar_single_yearly   (CHF 30)
  *   bundle     + monthly  →  clar_bundle_monthly  (CHF 6)
@@ -16,6 +16,7 @@
  *   - "bundle"      (attached to bundle_* products)
  */
 import { Platform } from "react-native";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 const RC_API_KEY = process.env.EXPO_PUBLIC_RC_IOS_API_KEY ?? "";
 
@@ -38,50 +39,72 @@ export type RcEntitlementSnapshot = {
 };
 
 let _rcAvailable: boolean | null = null;
+let _rcConfigured = false;
 
-function isNativeIOS() {
-  return Platform.OS === "ios";
+/** True only inside Expo Go (no native modules) */
+function isExpoGo(): boolean {
+  return Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+}
+
+/** True in a native iOS build (TestFlight / App Store / dev client). */
+export function isNativeBuild(): boolean {
+  return Platform.OS === "ios" && !isExpoGo();
 }
 
 async function loadPurchases() {
-  if (!isNativeIOS()) return null;
+  if (!isNativeBuild()) return null;
   try {
     const mod = await import("react-native-purchases");
-    return mod.default ?? mod;
+    return (mod as any).default ?? mod;
   } catch {
     return null;
   }
 }
 
 export async function configureRevenueCat(supabaseUserId?: string | null) {
-  if (!isNativeIOS()) {
+  if (_rcConfigured) return;
+  if (!isNativeBuild()) {
     _rcAvailable = false;
+    _rcConfigured = true;
     return;
   }
   if (!RC_API_KEY) {
-    if (__DEV__) console.warn("[clar] RC_API_KEY missing");
+    if (__DEV__) console.warn("[clar] EXPO_PUBLIC_RC_IOS_API_KEY missing");
     _rcAvailable = false;
+    _rcConfigured = true;
     return;
   }
   const Purchases = await loadPurchases();
   if (!Purchases) {
+    if (__DEV__) console.warn("[clar] react-native-purchases not linked");
     _rcAvailable = false;
+    _rcConfigured = true;
     return;
   }
   try {
+    if (typeof Purchases.setLogLevel === "function" && __DEV__) {
+      try { Purchases.setLogLevel("DEBUG"); } catch { /* ignore */ }
+    }
     Purchases.configure({
       apiKey: RC_API_KEY,
       appUserID: supabaseUserId || undefined,
     });
     _rcAvailable = true;
+    _rcConfigured = true;
+    if (__DEV__) console.log("[clar] RevenueCat configured");
   } catch (e) {
     if (__DEV__) console.warn("[clar] RC configure failed", e);
     _rcAvailable = false;
+    _rcConfigured = true;
   }
 }
 
+export function isRevenueCatAvailable(): boolean {
+  return _rcAvailable === true;
+}
+
 export async function rcLogin(supabaseUserId: string) {
-  if (!isNativeIOS()) return;
+  if (!isRevenueCatAvailable()) return;
   const Purchases = await loadPurchases();
   if (!Purchases) return;
   try {
@@ -92,7 +115,7 @@ export async function rcLogin(supabaseUserId: string) {
 }
 
 export async function rcLogout() {
-  if (!isNativeIOS()) return;
+  if (!isRevenueCatAvailable()) return;
   const Purchases = await loadPurchases();
   if (!Purchases) return;
   try {
@@ -103,7 +126,7 @@ export async function rcLogout() {
 }
 
 export async function getEntitlements(): Promise<RcEntitlementSnapshot | null> {
-  if (!isNativeIOS()) return null;
+  if (!isRevenueCatAvailable()) return null;
   const Purchases = await loadPurchases();
   if (!Purchases) return null;
   try {
@@ -125,18 +148,38 @@ export async function getEntitlements(): Promise<RcEntitlementSnapshot | null> {
 
 export type PurchaseOutcome =
   | { ok: true; productId: string; hasBundle: boolean; hasSingleApp: boolean }
-  | { ok: false; cancelled: boolean; error?: string };
+  | { ok: false; cancelled: boolean; productNotFound: boolean; error?: string };
 
 export async function purchaseProduct(productId: string): Promise<PurchaseOutcome> {
-  if (!isNativeIOS()) {
-    return { ok: false, cancelled: false, error: "Not iOS native" };
+  if (!isRevenueCatAvailable()) {
+    return { ok: false, cancelled: false, productNotFound: false, error: "RC not available" };
   }
   const Purchases = await loadPurchases();
   if (!Purchases) {
-    return { ok: false, cancelled: false, error: "Purchases module unavailable" };
+    return { ok: false, cancelled: false, productNotFound: false, error: "RC module missing" };
   }
   try {
-    const result = await Purchases.purchaseProduct(productId);
+    // Prefer purchaseStoreProduct (works for IAPs not yet in any offering),
+    // fall back to purchaseProduct for older SDKs.
+    let result: any;
+    if (typeof Purchases.getProducts === "function") {
+      const products = await Purchases.getProducts([productId]).catch(() => []);
+      if (!products || products.length === 0) {
+        return {
+          ok: false,
+          cancelled: false,
+          productNotFound: true,
+          error: `App-Store-Produkt "${productId}" nicht gefunden. Bitte IAP in App Store Connect anlegen.`,
+        };
+      }
+      if (typeof Purchases.purchaseStoreProduct === "function") {
+        result = await Purchases.purchaseStoreProduct(products[0]);
+      } else {
+        result = await Purchases.purchaseProduct(productId);
+      }
+    } else {
+      result = await Purchases.purchaseProduct(productId);
+    }
     const ents = result?.customerInfo?.entitlements?.active ?? {};
     return {
       ok: true,
@@ -145,13 +188,15 @@ export async function purchaseProduct(productId: string): Promise<PurchaseOutcom
       hasSingleApp: !!ents[ENTITLEMENTS.singleApp],
     };
   } catch (e: any) {
-    const cancelled = !!(e?.userCancelled || /cancel/i.test(e?.message ?? ""));
-    return { ok: false, cancelled, error: e?.message };
+    const msg = e?.message ?? String(e);
+    const cancelled = !!(e?.userCancelled || /cancel/i.test(msg));
+    const productNotFound = /product.*(not.*found|unavailable)|no.*offerings/i.test(msg);
+    return { ok: false, cancelled, productNotFound, error: msg };
   }
 }
 
 export async function restorePurchases(): Promise<RcEntitlementSnapshot | null> {
-  if (!isNativeIOS()) return null;
+  if (!isRevenueCatAvailable()) return null;
   const Purchases = await loadPurchases();
   if (!Purchases) return null;
   try {
@@ -173,8 +218,4 @@ export async function restorePurchases(): Promise<RcEntitlementSnapshot | null> 
 
 export function productIdFor(plan: "single" | "bundle", period: "monthly" | "yearly"): string {
   return PRODUCT_IDS[`${plan}_${period}`];
-}
-
-export function isRevenueCatAvailable(): boolean {
-  return _rcAvailable === true;
 }

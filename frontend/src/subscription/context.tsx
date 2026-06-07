@@ -1,8 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { Platform } from "react-native";
 import { api, SubscriptionStatus } from "../api/client";
 import { useAuth } from "../auth/context";
-import { purchaseProduct, productIdFor, restorePurchases as rcRestore } from "../lib/revenuecat";
+import {
+  purchaseProduct,
+  productIdFor,
+  restorePurchases as rcRestore,
+  isRevenueCatAvailable,
+} from "../lib/revenuecat";
 
 type SubState = {
   status: SubscriptionStatus | null;
@@ -51,15 +55,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const purchase = useCallback(
     async (plan: "single" | "bundle", period: "monthly" | "yearly", appSlug?: string) => {
-      if (Platform.OS === "ios") {
-        // Real RevenueCat / Apple IAP flow
+      if (isRevenueCatAvailable()) {
+        // Real RevenueCat / Apple IAP flow (native iOS build only)
         const productId = productIdFor(plan, period);
         const outcome = await purchaseProduct(productId);
         if (!outcome.ok) {
           if (outcome.cancelled) return;
+          if (outcome.productNotFound) {
+            throw new Error(
+              `IAP "${productId}" ist in App Store Connect noch nicht aktiv. Bitte Produkt anlegen, "Ready to Submit" stellen und im Sandbox/TestFlight nochmal versuchen.`
+            );
+          }
           throw new Error(outcome.error ?? "Kauf fehlgeschlagen");
         }
-        // Verify the granted entitlement matches the requested plan
         const grantedBundle = outcome.hasBundle;
         const grantedSingle = outcome.hasSingleApp;
         if (plan === "bundle" && !grantedBundle) {
@@ -69,8 +77,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           throw new Error("Single-Entitlement nicht erhalten");
         }
       }
-      // Record the purchase on shell backend (also runs as fallback on web preview).
-      // The slug only matters for the "single" plan — bundle unlocks everything.
+      // Record the purchase on shell backend.
+      // On native iOS this runs AFTER the real Apple charge succeeded.
+      // On web/Expo Go this is the only path (mock entitlement for preview).
       const s = await api.purchase(plan, period, plan === "single" ? appSlug : undefined);
       setStatus(s);
     },
@@ -78,15 +87,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   );
 
   const restore = useCallback(async () => {
-    if (Platform.OS !== "ios") return;
+    if (!isRevenueCatAvailable()) return;
     const snap = await rcRestore();
     if (!snap) return;
-    // If a valid entitlement is on this Apple ID, sync backend.
     if (snap.hasBundle) {
       const s = await api.purchase("bundle", "yearly");
       setStatus(s);
     } else if (snap.hasSingleApp) {
-      // We don't know the app_slug from RC alone — keep existing backend record.
       await refresh();
     }
   }, [refresh]);
