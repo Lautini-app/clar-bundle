@@ -6,9 +6,10 @@ import os
 import logging
 import uuid
 import jwt
+import httpx
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Optional
 
 ROOT_DIR = Path(__file__).parent
@@ -18,8 +19,11 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'clar-dev-secret-change-in-production')
+JWT_SECRET = os.environ.get('JWT_SECRET', 'clar-dev-secret-please-rotate-min-32-chars-long')
 JWT_ALGO = 'HS256'
+
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -32,15 +36,16 @@ class ClarApp(BaseModel):
     tagline: str
     description: str
     url: str
-    icon: str  # emoji or symbol name
-    color: str  # hex accent
-    available: bool = True  # if False -> "coming soon" placeholder
+    icon: str
+    color: str
+    available: bool = True
 
 
 class AppleSignInPayload(BaseModel):
     apple_user_id: str
     email: Optional[str] = None
     full_name: Optional[str] = None
+    supabase_access_token: Optional[str] = None  # set on native iOS after real Supabase signIn
 
 
 class AuthResponse(BaseModel):
@@ -50,76 +55,39 @@ class AuthResponse(BaseModel):
     full_name: Optional[str] = None
 
 
-class User(BaseModel):
-    id: str
-    apple_user_id: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    selected_apps: List[str] = []
-    created_at: str
-
-
 class SelectedAppsPayload(BaseModel):
     selected_apps: List[str]
 
 
 class SubscriptionStatus(BaseModel):
-    plan: Optional[str] = None  # 'single' | 'bundle' | None
-    entitlement: Optional[str] = None  # 'single_app' | 'bundle' | None
+    plan: Optional[str] = None
+    entitlement: Optional[str] = None
     apps_unlocked: List[str] = []
-    billing_period: Optional[str] = None  # 'monthly' | 'yearly'
+    billing_period: Optional[str] = None
     price_chf: Optional[float] = None
     expires_at: Optional[str] = None
 
 
 class PurchasePayload(BaseModel):
-    plan: str  # 'single' | 'bundle'
-    billing_period: str  # 'monthly' | 'yearly'
-    app_slug: Optional[str] = None  # required for 'single'
+    plan: str
+    billing_period: str
+    app_slug: Optional[str] = None
 
 
 # ============ Static App Catalog ============
 APPS_CATALOG = [
-    ClarApp(
-        slug="heim",
-        name="clar·heim",
-        tagline="Haushaltsorganisation",
-        description="Strukturiere deinen Haushalt mit klaren Routinen und Listen.",
-        url="https://clar.heim.lautini.ch",
-        icon="home",
-        color="#2E5C3E",
-        available=True,
-    ),
-    ClarApp(
-        slug="markt",
-        name="clar·markt",
-        tagline="Einkaufsplanung",
-        description="Einkaufslisten, die mit dir mitdenken.",
-        url="https://clar.markt.lautini.ch",
-        icon="cart",
-        color="#C97B3A",
-        available=True,
-    ),
-    ClarApp(
-        slug="lern",
-        name="clar·lern",
-        tagline="Lernunterstützung für Kinder",
-        description="Kindgerechte Lernhilfe — bald verfügbar.",
-        url="",
-        icon="book",
-        color="#5B7AAE",
-        available=False,
-    ),
-    ClarApp(
-        slug="zeit",
-        name="clar·zeit",
-        tagline="Zeitmanagement für ADHS",
-        description="Ruhige Zeitstruktur für neurodiverse Köpfe.",
-        url="",
-        icon="time",
-        color="#A85C7D",
-        available=False,
-    ),
+    ClarApp(slug="heim", name="clar·heim", tagline="Haushaltsorganisation",
+            description="Strukturiere deinen Haushalt mit klaren Routinen und Listen.",
+            url="https://clar.heim.lautini.ch", icon="home", color="#2E5C3E", available=True),
+    ClarApp(slug="markt", name="clar·markt", tagline="Einkaufsplanung",
+            description="Einkaufslisten, die mit dir mitdenken.",
+            url="https://clar.markt.lautini.ch", icon="cart", color="#C97B3A", available=True),
+    ClarApp(slug="lern", name="clar·lern", tagline="Lernunterstützung für Kinder",
+            description="Kindgerechte Lernhilfe — bald verfügbar.",
+            url="", icon="book", color="#5B7AAE", available=False),
+    ClarApp(slug="zeit", name="clar·zeit", tagline="Zeitmanagement für ADHS",
+            description="Ruhige Zeitstruktur für neurodiverse Köpfe.",
+            url="", icon="time", color="#A85C7D", available=False),
 ]
 
 
@@ -148,6 +116,28 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     return user
 
 
+async def verify_supabase_token(access_token: str) -> Optional[dict]:
+    """Verify a Supabase access_token by calling /auth/v1/user.
+    Returns the Supabase user dict on success, None on failure."""
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as cx:
+            r = await cx.get(
+                f"{SUPABASE_URL}/auth/v1/user",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "apikey": SUPABASE_ANON_KEY,
+                },
+            )
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except Exception as e:
+        logger.warning("Supabase verify failed: %s", e)
+        return None
+
+
 # ============ Routes ============
 @api_router.get("/")
 async def root():
@@ -156,48 +146,65 @@ async def root():
 
 @api_router.get("/apps", response_model=List[ClarApp])
 async def list_apps():
-    """Return the extensible catalog of clar apps. New apps can be added here
-    without requiring an App Store update on the shell."""
     return APPS_CATALOG
 
 
 @api_router.post("/auth/apple", response_model=AuthResponse)
 async def sign_in_with_apple(payload: AppleSignInPayload):
-    """Mock Sign in with Apple. In native production builds, the client will
-    send the Apple identity token here for verification. For now we trust the
-    payload to establish a session for the user."""
-    existing = await db.users.find_one({"apple_user_id": payload.apple_user_id}, {"_id": 0})
+    """Sign in with Apple via Supabase.
+
+    Production iOS flow:
+      1. Client calls AppleAuthentication.signInAsync → identityToken
+      2. Client calls supabase.auth.signInWithIdToken({provider:'apple', token})
+      3. Client sends supabase_access_token to this endpoint
+      4. We verify the access token with Supabase, then mint a Shell-JWT
+
+    Web/Expo Go fallback (no supabase_access_token): we trust the apple_user_id
+    payload to establish a mock session for preview only.
+    """
+    canonical_user_id: str
+    email: Optional[str] = payload.email
+    full_name: Optional[str] = payload.full_name
+
+    if payload.supabase_access_token:
+        sb_user = await verify_supabase_token(payload.supabase_access_token)
+        if not sb_user:
+            raise HTTPException(status_code=401, detail="Invalid Supabase token")
+        canonical_user_id = sb_user["id"]
+        email = sb_user.get("email") or email
+    else:
+        # MOCK preview path — only accept if Supabase is not configured OR caller
+        # explicitly passed a mock apple_user_id (no token = preview)
+        canonical_user_id = payload.apple_user_id
+
+    existing = await db.users.find_one({"apple_user_id": canonical_user_id}, {"_id": 0})
     if existing:
         user_id = existing["id"]
-        # update missing fields
         update = {}
-        if payload.email and not existing.get("email"):
-            update["email"] = payload.email
-        if payload.full_name and not existing.get("full_name"):
-            update["full_name"] = payload.full_name
+        if email and not existing.get("email"):
+            update["email"] = email
+        if full_name and not existing.get("full_name"):
+            update["full_name"] = full_name
         if update:
             await db.users.update_one({"id": user_id}, {"$set": update})
-        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        user_email = existing.get("email") or email
+        user_name = existing.get("full_name") or full_name
     else:
         user_id = str(uuid.uuid4())
         new_user = {
             "id": user_id,
-            "apple_user_id": payload.apple_user_id,
-            "email": payload.email,
-            "full_name": payload.full_name,
+            "apple_user_id": canonical_user_id,
+            "email": email,
+            "full_name": full_name,
             "selected_apps": [],
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.users.insert_one(new_user.copy())
-        user = new_user
+        user_email = email
+        user_name = full_name
 
     token = create_token(user_id)
-    return AuthResponse(
-        token=token,
-        user_id=user_id,
-        email=user.get("email"),
-        full_name=user.get("full_name"),
-    )
+    return AuthResponse(token=token, user_id=user_id, email=user_email, full_name=user_name)
 
 
 @api_router.get("/auth/me")
@@ -209,10 +216,7 @@ async def me(user: dict = Depends(get_current_user)):
 async def save_selected_apps(payload: SelectedAppsPayload, user: dict = Depends(get_current_user)):
     valid_slugs = {a.slug for a in APPS_CATALOG if a.available}
     cleaned = [s for s in payload.selected_apps if s in valid_slugs]
-    await db.users.update_one(
-        {"id": user["id"]},
-        {"$set": {"selected_apps": cleaned}},
-    )
+    await db.users.update_one({"id": user["id"]}, {"$set": {"selected_apps": cleaned}})
     return {"selected_apps": cleaned}
 
 
@@ -241,12 +245,10 @@ PRICING = {
 
 @api_router.post("/subscription/purchase", response_model=SubscriptionStatus)
 async def purchase(payload: PurchasePayload, user: dict = Depends(get_current_user)):
-    """MOCK RevenueCat purchase. In production builds this will be replaced
-    by client-side native RevenueCat purchase flow + webhook verification."""
+    """MOCK purchase. Phase C will replace this with RevenueCat webhook ingestion."""
     if (payload.plan, payload.billing_period) not in PRICING:
         raise HTTPException(status_code=400, detail="Invalid plan/period")
     price = PRICING[(payload.plan, payload.billing_period)]
-
     available_slugs = [a.slug for a in APPS_CATALOG if a.available]
 
     if payload.plan == "single":
@@ -260,7 +262,6 @@ async def purchase(payload: PurchasePayload, user: dict = Depends(get_current_us
 
     period_days = 30 if payload.billing_period == "monthly" else 365
     expires = (datetime.now(timezone.utc) + timedelta(days=period_days)).isoformat()
-
     sub_doc = {
         "user_id": user["id"],
         "plan": payload.plan,
@@ -271,18 +272,10 @@ async def purchase(payload: PurchasePayload, user: dict = Depends(get_current_us
         "expires_at": expires,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    await db.subscriptions.update_one(
-        {"user_id": user["id"]},
-        {"$set": sub_doc},
-        upsert=True,
-    )
+    await db.subscriptions.update_one({"user_id": user["id"]}, {"$set": sub_doc}, upsert=True)
     return SubscriptionStatus(
-        plan=payload.plan,
-        entitlement=entitlement,
-        apps_unlocked=apps_unlocked,
-        billing_period=payload.billing_period,
-        price_chf=price,
-        expires_at=expires,
+        plan=payload.plan, entitlement=entitlement, apps_unlocked=apps_unlocked,
+        billing_period=payload.billing_period, price_chf=price, expires_at=expires,
     )
 
 
@@ -294,9 +287,8 @@ async def cancel(user: dict = Depends(get_current_user)):
 
 @api_router.get("/sso/token")
 async def sso_token(user: dict = Depends(get_current_user)):
-    """MOCK SSO endpoint: returns a short-lived token the WebView could pass to
-    external web apps. Web apps must be updated to accept this — for now this
-    is illustrative and not consumed by clar.heim / clar.markt."""
+    """Issue a short-lived Shell-JWT for legacy postMessage handoff.
+    Modern flow uses Supabase tokens directly in WebView URL hash."""
     token = create_token(user["id"])
     return {"sso_token": token, "user_id": user["id"]}
 

@@ -50,6 +50,13 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export type AppleSignInArgs = {
+  apple_user_id: string;
+  email?: string | null;
+  full_name?: string | null;
+  supabase_access_token?: string | null;
+};
+
 export const api = {
   setToken: (t: string) => AsyncStorage.setItem(TOKEN_KEY, t),
   clearToken: () => AsyncStorage.removeItem(TOKEN_KEY),
@@ -57,11 +64,11 @@ export const api = {
 
   listApps: () => req<ClarApp[]>("/apps"),
 
-  signInWithApple: (apple_user_id: string, email?: string, full_name?: string) =>
-    req<{ token: string; user_id: string; email?: string; full_name?: string }>(
-      "/auth/apple",
-      { method: "POST", body: JSON.stringify({ apple_user_id, email, full_name }) }
-    ),
+  signInWithApple: (args: AppleSignInArgs) =>
+    req<{ token: string; user_id: string; email?: string; full_name?: string }>("/auth/apple", {
+      method: "POST",
+      body: JSON.stringify(args),
+    }),
 
   me: () => req<User>("/auth/me"),
 

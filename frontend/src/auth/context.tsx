@@ -1,16 +1,31 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, User } from "../api/client";
+import { supabase } from "../lib/supabase";
 
 type AuthState = {
   user: User | null;
   isLoading: boolean;
   isAuthed: boolean;
-  signInWithApple: (apple_user_id: string, email?: string, full_name?: string) => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
+
+const SB_ACCESS_KEY = "clar.supabase.access_token";
+const SB_REFRESH_KEY = "clar.supabase.refresh_token";
+
+/**
+ * Cache Supabase session tokens so the WebView can hand them off to
+ * the embedded clar·apps via URL hash (see SSO_CONTRACT.md).
+ */
+async function cacheSupabaseTokens(access?: string | null, refresh?: string | null) {
+  if (access) await AsyncStorage.setItem(SB_ACCESS_KEY, access);
+  if (refresh) await AsyncStorage.setItem(SB_REFRESH_KEY, refresh);
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -33,22 +48,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     (async () => {
+      // restore Supabase session if cached
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          await cacheSupabaseTokens(data.session.access_token, data.session.refresh_token);
+        }
+      } catch {
+        /* ignore */
+      }
       await refresh();
       setIsLoading(false);
     })();
   }, [refresh]);
 
-  const signInWithApple = useCallback(
-    async (apple_user_id: string, email?: string, full_name?: string) => {
-      const res = await api.signInWithApple(apple_user_id, email, full_name);
-      await api.setToken(res.token);
-      await refresh();
-    },
-    [refresh]
-  );
+  const signInWithApple = useCallback(async () => {
+    let supabaseAccessToken: string;
+    let appleUserId: string;
+    let email: string | null = null;
+    let fullName: string | null = null;
+
+    if (Platform.OS === "ios") {
+      // Real Apple Sign In via expo-apple-authentication
+      const AppleAuth = await import("expo-apple-authentication");
+      const credential = await AppleAuth.signInAsync({
+        requestedScopes: [
+          AppleAuth.AppleAuthenticationScope.FULL_NAME,
+          AppleAuth.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error("Apple Sign-In: kein identityToken erhalten");
+      }
+
+      // Exchange Apple identity token for Supabase session
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+      });
+      if (error || !data.session) throw new Error(error?.message ?? "Supabase signIn fehlgeschlagen");
+
+      supabaseAccessToken = data.session.access_token;
+      appleUserId = data.user?.id ?? credential.user;
+      email = credential.email ?? data.user?.email ?? null;
+      if (credential.fullName) {
+        const parts = [credential.fullName.givenName, credential.fullName.familyName].filter(Boolean);
+        if (parts.length) fullName = parts.join(" ");
+      }
+      await cacheSupabaseTokens(data.session.access_token, data.session.refresh_token);
+    } else {
+      // Web / Expo Go fallback: MOCK Apple Sign In via Supabase anonymous-ish flow
+      // Used only for preview — real iOS build goes through the native path above.
+      const mockEmail = `dev+${Date.now()}@clar.local`;
+      const mockId = `mock_${Date.now()}`;
+      appleUserId = mockId;
+      email = mockEmail;
+      fullName = "Apple User";
+      // For Web preview we don't actually hit Supabase. Skip — backend creates user.
+      supabaseAccessToken = "";
+    }
+
+    // Tell Shell-Backend → mints Shell-JWT for /api/subscription/* etc.
+    const res = await api.signInWithApple({
+      apple_user_id: appleUserId,
+      email,
+      full_name: fullName,
+      supabase_access_token: supabaseAccessToken || null,
+    });
+    await api.setToken(res.token);
+    await refresh();
+  }, [refresh]);
 
   const signOut = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* ignore */
+    }
     await api.clearToken();
+    await AsyncStorage.multiRemove([SB_ACCESS_KEY, SB_REFRESH_KEY]);
     setUser(null);
   }, []);
 

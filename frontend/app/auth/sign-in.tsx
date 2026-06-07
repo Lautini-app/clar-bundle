@@ -17,14 +17,16 @@ export default function SignIn() {
     setLoading(true);
     setError(null);
     try {
-      // MOCK: In production native iOS build we would call expo-apple-authentication
-      // and forward the credential to Supabase, which would return a JWT.
-      // For Expo Go / web preview we mint a stable mock Apple user id.
-      const mockId = `apple_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      await signInWithApple(mockId, "user@privaterelay.apple", "Apple User");
+      await signInWithApple();
       router.replace("/(main)");
     } catch (e: any) {
-      setError(e.message ?? "Anmeldung fehlgeschlagen");
+      const msg = e?.message ?? "Anmeldung fehlgeschlagen";
+      // user-cancel from Apple sheet returns a specific error code — silent
+      if (/ERR_CANCELED|cancel/i.test(msg)) {
+        setError(null);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,8 +58,8 @@ export default function SignIn() {
         {error && <Text style={styles.error}>{error}</Text>}
         <Text style={styles.dev}>
           {Platform.OS === "web"
-            ? "Web/Expo Go: MOCK Apple Sign In. Native iOS-Build nutzt Supabase + Apple."
-            : "Hinweis: Echtes Apple Sign In erfordert nativen iOS-Build."}
+            ? "Web-Vorschau: MOCK Sign-In. Echtes Apple Sign-In im nativen iOS-Build."
+            : "Apple Sign-In + Supabase verbunden."}
         </Text>
       </View>
     </SafeAreaView>
