@@ -23,10 +23,11 @@ Native iOS Shell-App für den App Store, gebaut mit Expo (React Native) + FastAP
 
 ### ✅ Phase C — RevenueCat IAPs
 - `react-native-purchases` integriert (iOS only, no-op auf Web/Android)
-- 4 Produkt-IDs gemappt: `clar_single_monthly`, `clar_single_yearly`, `clar_bundle_monthly`, `clar_bundle_yearly`
-- 2 Entitlements: `single_app`, `bundle`
+- 4 Produkt-IDs (App Store Connect / RevenueCat): `ch.lautini.clar.1app.monthly`, `ch.lautini.clar.1app.yearly`, `ch.lautini.clar.2apps.monthly`, `ch.lautini.clar.2apps.yearly`
+- 3 Entitlements (RevenueCat-Konfig): `heim`, `markt`, `clar.app` — Zugriffsregel: `clar.app` ist all-access, sonst per-App-Match
 - "Käufe wiederherstellen" Button in Settings (App Store Pflicht)
 - `Purchases.logIn(user_id)` an Supabase-User gebunden
+- Diagnose-Sektion in Settings zeigt Live-Status (Build-Typ, RC-Status, Entitlements)
 - Web-Preview-Fallback: Backend-Mock-Purchase funktioniert weiterhin
 
 ## Was vor App Store Submit zu tun ist (User-Tasks)
@@ -40,10 +41,10 @@ Native iOS Shell-App für den App Store, gebaut mit Expo (React Native) + FastAP
 ### B. App Store Connect
 1. App `clar by lautini` mit Bundle ID `ch.lautini.clar` (✅ erstellt)
 2. **4 IAP-Produkte anlegen:**
-   - `clar_single_monthly` (CHF 4 Auto-renewable, Subscription Group `clar`)
-   - `clar_single_yearly` (CHF 30)
-   - `clar_bundle_monthly` (CHF 6)
-   - `clar_bundle_yearly` (CHF 50)
+   - `ch.lautini.clar.1app.monthly` (CHF 4 Auto-renewable, Subscription Group `clar`)
+   - `ch.lautini.clar.1app.yearly` (CHF 30)
+   - `ch.lautini.clar.2apps.monthly` (CHF 6)
+   - `ch.lautini.clar.2apps.yearly` (CHF 50)
 3. Sandbox Tester Account anlegen für TestFlight-Tests
 4. Banking & Tax (✅ hinterlegt)
 

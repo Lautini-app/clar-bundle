@@ -2,7 +2,7 @@
   "expo": {
     "name": "clar",
     "slug": "clar",
-    "version": "1.0.0",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "clar",
@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ch.lautini.clar",
+      "buildNumber": "6",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -22,7 +23,8 @@
         "backgroundColor": "#2E5C3E"
       },
       "edgeToEdgeEnabled": true,
-      "package": "ch.lautini.clar"
+      "package": "ch.lautini.clar",
+      "versionCode": 6
     },
     "web": {
       "bundler": "metro",
