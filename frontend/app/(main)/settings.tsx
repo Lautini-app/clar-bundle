@@ -16,14 +16,18 @@ export default function Settings() {
   const { status, cancel, restore } = useSubscription();
 
   const handleSignOut = async () => {
-    // 1. Clear shell session
+    // 1. Clear shell session (auth context state + token)
     await signOut();
-    // 2. Clear stored Supabase session tokens
+    // 2. Clear stored Supabase session tokens (used for SSO into WebViews)
     await AsyncStorage.multiRemove(["clar.supabase.access_token", "clar.supabase.refresh_token"]);
-    // 3. Clear embedded WebView cookies (Supabase session in clar·apps)
+    // 3. Clear embedded WebView cookies so the next user doesn't land on
+    //    a stale Supabase session inside clar·heim / clar·markt
     await clearWebViewSession();
-    // 4. Navigate back to welcome
-    router.replace("/onboarding/welcome");
+    // 4. Bounce through the root index — its auth-aware splash routes to
+    //    /onboarding/welcome now that the auth state is empty. Using "/"
+    //    also unmounts the nested (main) stack cleanly so no stale screen
+    //    flashes through.
+    router.replace("/");
   };
 
   const handleCancel = async () => {
@@ -93,7 +97,7 @@ export default function Settings() {
 
         <Diagnostics />
 
-        <Text style={styles.footer}>clar by lautini · v1.0.6 (build 6)</Text>
+        <Text style={styles.footer}>clar by lautini · v1.0.7 (build 7)</Text>
       </ScrollView>
     </SafeAreaView>
   );
