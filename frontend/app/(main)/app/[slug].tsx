@@ -1,37 +1,78 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, ClarApp } from "@/src/api/client";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing } from "@/src/theme";
+
+const SUPABASE_ACCESS_KEY = "clar.supabase.access_token";
+const SUPABASE_REFRESH_KEY = "clar.supabase.refresh_token";
+
+/**
+ * Builds the WebView URL for an embedded clar·app.
+ *
+ * Contract with the web apps (see SSO_CONTRACT.md):
+ *   1. Hash params: #clar_embedded=1[&access_token=…&refresh_token=…]
+ *   2. window.__CLAR_EMBEDDED__ === true (set before content load)
+ *
+ * The web app's /auth/callback (or root) must read the hash and call
+ * supabase.auth.setSession() before clearing the URL.
+ */
+function buildEmbeddedUrl(baseUrl: string, accessToken: string | null, refreshToken: string | null): string {
+  if (!baseUrl) return baseUrl;
+  const sep = baseUrl.includes("#") ? "&" : "#";
+  const parts = ["clar_embedded=1"];
+  if (accessToken && refreshToken) {
+    parts.push(`access_token=${encodeURIComponent(accessToken)}`);
+    parts.push(`refresh_token=${encodeURIComponent(refreshToken)}`);
+    parts.push("type=clar_sso");
+  }
+  return baseUrl + sep + parts.join("&");
+}
+
+const EMBEDDED_INJECTED_JS = `
+  (function() {
+    window.__CLAR_EMBEDDED__ = true;
+    window.__CLAR_SHELL_VERSION__ = '1.0.0';
+    document.documentElement.setAttribute('data-clar-embedded', '1');
+  })();
+  true;
+`;
 
 export default function AppWebView() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const { hasEntitlement } = useSubscription();
   const [app, setApp] = useState<ClarApp | null>(null);
-  const [ssoToken, setSsoToken] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const webRef = useRef<WebView | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const apps = await api.listApps();
-        const found = apps.find((a) => a.slug === slug);
-        setApp(found ?? null);
-        if (found && hasEntitlement(found.slug)) {
-          const t = await api.ssoToken().catch(() => null);
-          if (t) setSsoToken(t.sso_token);
-        }
+        const [apps, at, rt] = await Promise.all([
+          api.listApps(),
+          AsyncStorage.getItem(SUPABASE_ACCESS_KEY),
+          AsyncStorage.getItem(SUPABASE_REFRESH_KEY),
+        ]);
+        setApp(apps.find((a) => a.slug === slug) ?? null);
+        setAccessToken(at);
+        setRefreshToken(rt);
       } finally {
         setLoading(false);
       }
     })();
-  }, [slug, hasEntitlement]);
+  }, [slug]);
+
+  const embeddedUrl = useMemo(
+    () => (app ? buildEmbeddedUrl(app.url, accessToken, refreshToken) : ""),
+    [app, accessToken, refreshToken]
+  );
 
   if (loading) {
     return (
@@ -79,25 +120,24 @@ export default function AppWebView() {
           <Text style={styles.webFallbackTitle}>{app.name}</Text>
           <Text style={styles.webFallbackUrl}>{app.url}</Text>
           <Text style={styles.webFallbackHint}>
-            WebView-Vorschau auf dem nativen iOS-Build verfügbar.
+            Embedded WebView aktiv im nativen iOS-Build.{"\n"}
+            SSO-Token via URL-Hash + `__CLAR_EMBEDDED__` Flag.
           </Text>
         </View>
       ) : (
         <WebView
-          ref={webRef}
           testID="webview-iframe"
-          source={{ uri: app.url }}
+          source={{ uri: embeddedUrl }}
           style={{ flex: 1 }}
           javaScriptEnabled
           domStorageEnabled
-          onLoadEnd={() => {
-            if (ssoToken && webRef.current) {
-              // MOCK SSO HANDOFF: web apps would need to listen to this message
-              webRef.current.postMessage(
-                JSON.stringify({ type: "clar.sso", token: ssoToken })
-              );
-            }
-          }}
+          sharedCookiesEnabled
+          thirdPartyCookiesEnabled
+          injectedJavaScriptBeforeContentLoaded={EMBEDDED_INJECTED_JS}
+          applicationNameForUserAgent="clar-shell/1.0.0"
+          allowsBackForwardNavigationGestures
+          decelerationRate="normal"
+          pullToRefreshEnabled
         />
       )}
     </SafeAreaView>
@@ -117,5 +157,5 @@ const styles = StyleSheet.create({
   webFallback: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm, padding: spacing.xl },
   webFallbackTitle: { fontSize: 20, fontWeight: "700", color: colors.ink },
   webFallbackUrl: { fontSize: 13, color: colors.brand, fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }) },
-  webFallbackHint: { fontSize: 12, color: colors.inkMuted, textAlign: "center", marginTop: spacing.md },
+  webFallbackHint: { fontSize: 12, color: colors.inkMuted, textAlign: "center", marginTop: spacing.md, lineHeight: 18 },
 });

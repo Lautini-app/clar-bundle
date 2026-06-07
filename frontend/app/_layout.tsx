@@ -28,7 +28,16 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <SubscriptionProvider>
-          <Stack screenOptions={{ headerShown: false }} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="onboarding/welcome" />
+            <Stack.Screen name="auth/sign-in" />
+            <Stack.Screen name="(main)" />
+            <Stack.Screen
+              name="paywall"
+              options={{ presentation: "modal", animation: "slide_from_bottom" }}
+            />
+          </Stack>
         </SubscriptionProvider>
       </AuthProvider>
     </SafeAreaProvider>

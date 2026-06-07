@@ -2,9 +2,11 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/src/auth/context";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
+import { clearWebViewSession } from "@/src/webview/session";
 
 export default function Settings() {
   const router = useRouter();
@@ -12,7 +14,13 @@ export default function Settings() {
   const { status, cancel } = useSubscription();
 
   const handleSignOut = async () => {
+    // 1. Clear shell session
     await signOut();
+    // 2. Clear stored Supabase session tokens
+    await AsyncStorage.multiRemove(["clar.supabase.access_token", "clar.supabase.refresh_token"]);
+    // 3. Clear embedded WebView cookies (Supabase session in clar·apps)
+    await clearWebViewSession();
+    // 4. Navigate back to welcome
     router.replace("/onboarding/welcome");
   };
 
@@ -35,7 +43,6 @@ export default function Settings() {
         <View style={styles.card}>
           <Row label="Name" value={user?.full_name ?? "—"} />
           <Row label="E-Mail" value={user?.email ?? "—"} />
-          <Row label="Apple ID" value={user?.apple_user_id?.slice(0, 14) + "…"} />
         </View>
 
         <Text style={styles.section}>Abo</Text>
@@ -51,25 +58,11 @@ export default function Settings() {
               </Pressable>
             </>
           ) : (
-            <Pressable
-              testID="upgrade-from-settings"
-              onPress={() => router.push("/onboarding/plan")}
-              style={styles.upgradeBtn}
-            >
-              <Text style={styles.upgradeBtnText}>Abo abschliessen</Text>
-            </Pressable>
+            <Text style={styles.noPlan}>
+              Kein aktives Abo. Wähle eine App auf der Startseite, um zu abonnieren.
+            </Text>
           )}
         </View>
-
-        <Text style={styles.section}>Apps verwalten</Text>
-        <Pressable
-          testID="manage-apps"
-          style={styles.linkRow}
-          onPress={() => router.push("/onboarding/select-apps")}
-        >
-          <Text style={styles.linkText}>App-Auswahl ändern</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.inkMuted} />
-        </Pressable>
 
         <Pressable testID="sign-out" style={styles.signOut} onPress={handleSignOut}>
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />
@@ -102,10 +95,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 8 },
   rowLabel: { fontSize: 14, color: colors.inkSoft },
   rowValue: { fontSize: 14, color: colors.ink, fontWeight: "600", maxWidth: "60%", textAlign: "right" },
-  linkRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: colors.card, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider },
-  linkText: { fontSize: 14, color: colors.ink, fontWeight: "600" },
-  upgradeBtn: { backgroundColor: colors.brand, paddingVertical: 12, borderRadius: radius.pill, alignItems: "center", marginTop: spacing.xs },
-  upgradeBtnText: { color: colors.cream, fontWeight: "700" },
+  noPlan: { fontSize: 13, color: colors.inkSoft, lineHeight: 19 },
   dangerBtn: { paddingVertical: 12, borderRadius: radius.pill, alignItems: "center", marginTop: spacing.sm, borderWidth: 1, borderColor: colors.danger },
   dangerText: { color: colors.danger, fontWeight: "700" },
   signOut: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, marginTop: spacing.lg },

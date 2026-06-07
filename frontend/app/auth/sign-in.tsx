@@ -22,7 +22,7 @@ export default function SignIn() {
       // For Expo Go / web preview we mint a stable mock Apple user id.
       const mockId = `apple_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       await signInWithApple(mockId, "user@privaterelay.apple", "Apple User");
-      router.replace("/onboarding/select-apps");
+      router.replace("/(main)");
     } catch (e: any) {
       setError(e.message ?? "Anmeldung fehlgeschlagen");
     } finally {

@@ -26,7 +26,12 @@ export default function Paywall() {
     setBuying(true);
     try {
       await purchase(plan, period, plan === "single" ? slug : undefined);
-      router.back();
+      // After successful purchase: go straight into the just-unlocked app
+      if (slug) {
+        router.replace({ pathname: "/(main)/app/[slug]", params: { slug } });
+      } else {
+        router.back();
+      }
     } finally {
       setBuying(false);
     }

@@ -7,18 +7,16 @@ import { useAuth } from "@/src/auth/context";
 
 export default function Index() {
   const router = useRouter();
-  const { isLoading, isAuthed, user } = useAuth();
+  const { isLoading, isAuthed } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthed) {
       router.replace("/onboarding/welcome");
-    } else if (!user?.selected_apps?.length) {
-      router.replace("/onboarding/select-apps");
     } else {
       router.replace("/(main)");
     }
-  }, [isLoading, isAuthed, user, router]);
+  }, [isLoading, isAuthed, router]);
 
   return (
     <View style={styles.container} testID="splash-screen">
