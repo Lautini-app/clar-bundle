@@ -37,7 +37,7 @@ function buildEmbeddedUrl(baseUrl: string, accessToken: string | null, refreshTo
 const EMBEDDED_INJECTED_JS = `
   (function() {
     window.__CLAR_EMBEDDED__ = true;
-    window.__CLAR_SHELL_VERSION__ = '1.0.9';
+    window.__CLAR_SHELL_VERSION__ = '1.0.10';
     document.documentElement.setAttribute('data-clar-embedded', '1');
     try { sessionStorage.setItem('clar_embedded', '1'); } catch(e) {}
   })();
@@ -162,16 +162,18 @@ export default function AppWebView() {
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             injectedJavaScriptBeforeContentLoaded={EMBEDDED_INJECTED_JS}
-            applicationNameForUserAgent="clar-shell/1.0.9"
+            applicationNameForUserAgent="clar-shell/1.0.10"
             allowsBackForwardNavigationGestures
             decelerationRate="normal"
             pullToRefreshEnabled
             onLoadStart={() => setWebLoading(true)}
             onLoadEnd={() => {
-              // Keep the brand overlay for ~250ms after load to mask any
+              // Keep the brand overlay for 1500ms after load to mask any
               // landing-page flash before the web app's beforeLoad redirect runs.
+              // Increased from 350ms after user reports of clar.markt landing
+              // briefly showing through.
               if (overlayTimer.current) clearTimeout(overlayTimer.current);
-              overlayTimer.current = setTimeout(() => setWebLoading(false), 350);
+              overlayTimer.current = setTimeout(() => setWebLoading(false), 1500);
             }}
           />
           {webLoading && (

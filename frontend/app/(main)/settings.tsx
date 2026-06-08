@@ -97,7 +97,7 @@ export default function Settings() {
 
         <Diagnostics />
 
-        <Text style={styles.footer}>clar by lautini · v1.0.9 (build 9)</Text>
+        <Text style={styles.footer}>clar by lautini · v1.0.10 (build 10)</Text>
       </ScrollView>
     </SafeAreaView>
   );
