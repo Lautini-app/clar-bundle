@@ -8,7 +8,7 @@
 
 ## 1. Wie die Shell die Web-App lädt
 
-URL-Format (Schema seit Shell v1.0.8):
+URL-Format (Schema seit Shell v1.0.14):
 
 ```
 https://clar.heim.lautini.ch/?clar_embedded=1#access_token=<JWT>&refresh_token=<JWT>&type=clar_sso&clar_embedded=1
@@ -89,6 +89,47 @@ async function consumeShellSession() {
 
 await consumeShellSession();
 ```
+
+### B.2) **NEU (Shell v1.0.14)** — Ready-Handshake via postMessage
+
+Damit die iOS-Shell ihr volldeckendes Brand-Overlay **exakt** in dem Moment
+abblendet, in dem die Web-App das Routing abgeschlossen und keine
+Landing/Marketing-Inhalte mehr anzeigt, **MUSS** die Web-App genau **EIN**
+Mal den `clar_ready`-Event an die Shell senden — am besten direkt nachdem
+`consumeShellSession()` durchgelaufen ist **und** die erste echte App-Route
+(z. B. `/heute`, `/liste`) gemountet wurde.
+
+```ts
+function signalShellReady() {
+  // 1) Neuer API-Style (von der Shell pre-content injected):
+  if (typeof window !== 'undefined' && (window as any).clarShell?.ready) {
+    (window as any).clarShell.ready();
+    return;
+  }
+  // 2) Fallback: direkt an ReactNativeWebView
+  const rn = (window as any).ReactNativeWebView;
+  if (rn?.postMessage) {
+    rn.postMessage(JSON.stringify({ type: 'clar_ready' }));
+  }
+}
+
+// Beispiel-Aufruf nach dem ersten Render der ersten echten Route:
+useEffect(() => { if (isEmbeddedInShell()) signalShellReady(); }, []);
+```
+
+**Warum:** Vorher hat die Shell mit einem 1500 ms-Timer gewartet — bei
+langsamem Netz war die Landingpage trotzdem 0.3 – 0.5 s sichtbar. Mit dem
+Handshake blendet die Shell das Overlay genau dann ab, wenn die Web-App
+bereit ist (typisch < 50 ms zusätzliche Verzögerung).
+
+**Fallback:** Falls die Web-App `clar_ready` nicht (oder noch nicht)
+sendet, blendet die Shell automatisch nach max. **6 s** ab und/oder sobald
+sie eine bekannte In-App-Route in der URL erkennt
+(`/heute`, `/app`, `/dashboard`, `/today`, `/liste`, `/list`).
+Alte Web-Builds funktionieren also weiterhin — aber **mit** Handshake
+sieht der User die Landingpage garantiert nie.
+
+---
 
 ### C) Embedded-Mode UI-Anpassungen
 | Wenn `isEmbedded === true` | Wirkung |

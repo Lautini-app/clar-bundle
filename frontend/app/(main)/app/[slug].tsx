@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { WebView } from "react-native-webview";
+import { WebView, WebViewMessageEvent } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, ClarApp } from "@/src/api/client";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
+import { diag } from "@/src/lib/diagnostics";
 
 const SUPABASE_ACCESS_KEY = "clar.supabase.access_token";
 const SUPABASE_REFRESH_KEY = "clar.supabase.refresh_token";
@@ -35,27 +36,71 @@ function buildEmbeddedUrl(baseUrl: string, accessToken: string | null, refreshTo
 }
 
 /**
- * Per-app route signatures: when the WebView's current URL contains ANY of
- * these path fragments, we know the web app has finished its
- * landing → in-app redirect and we can drop the brand overlay.
+ * Per-app route signatures: fallback for older web builds that don't yet
+ * implement the `clar_ready` postMessage handshake. When the WebView's
+ * current URL contains ANY of these path fragments AND loading finished,
+ * we know the web app has finished its landing → in-app redirect and we
+ * can drop the brand overlay.
  *
- * If none of these match within the safety timeout, we drop the overlay
- * anyway so the user is never stuck staring at our overlay forever.
+ * If neither the postMessage nor any of these match within the safety
+ * timeout, we drop the overlay anyway so the user is never stuck.
  */
 const APP_ROUTE_HINTS: Record<string, string[]> = {
   heim: ["/heute", "/app", "/dashboard", "/today"],
   markt: ["/app", "/liste", "/list", "/dashboard"],
 };
-const OVERLAY_MAX_MS = 6000; // worst-case fallback (web app does no redirect)
-const OVERLAY_HIDE_DELAY_MS = 200; // small delay after in-app detection
+const OVERLAY_MAX_MS = 6000; // worst-case fallback (web app does nothing)
+const OVERLAY_HIDE_DELAY_MS = 120; // tiny delay after handshake/hint to let paint settle
+
+/**
+ * Injected into the WebView BEFORE the page's own scripts run.
+ *
+ * - Marks window.__CLAR_EMBEDDED__ + data-attribute + sessionStorage so the
+ *   web app's `isEmbeddedInShell()` check returns true even on the very
+ *   first render.
+ * - Patches window.postMessage to also forward to ReactNativeWebView, so
+ *   the web app can call BOTH `window.parent.postMessage` (old style)
+ *   and `window.ReactNativeWebView.postMessage` (new style).
+ * - Provides a tiny `window.clarShell.ready()` helper the web app can call
+ *   the moment it has finished consuming the SSO session and routed away
+ *   from any landing page.
+ */
+const EMBEDDED_INJECTED_JS = `
   (function() {
-    window.__CLAR_EMBEDDED__ = true;
-    window.__CLAR_SHELL_VERSION__ = '1.0.13';
-    document.documentElement.setAttribute('data-clar-embedded', '1');
-    try { sessionStorage.setItem('clar_embedded', '1'); } catch(e) {}
+    try {
+      window.__CLAR_EMBEDDED__ = true;
+      window.__CLAR_SHELL_VERSION__ = '1.0.14';
+      document.documentElement.setAttribute('data-clar-embedded', '1');
+      try { sessionStorage.setItem('clar_embedded', '1'); } catch(e) {}
+
+      var rn = window.ReactNativeWebView;
+      function send(payload) {
+        try {
+          if (rn && typeof rn.postMessage === 'function') {
+            rn.postMessage(typeof payload === 'string' ? payload : JSON.stringify(payload));
+          }
+        } catch (e) {}
+      }
+
+      window.clarShell = {
+        ready: function() { send({ type: 'clar_ready' }); },
+        post:  function(type, data) { send({ type: type, data: data || null }); },
+      };
+
+      // Bridge: web app may also call window.postMessage({type:'clar_ready'}, '*')
+      var _origPost = window.postMessage && window.postMessage.bind(window);
+      window.postMessage = function(msg, targetOrigin, transfer) {
+        try { send(msg); } catch (e) {}
+        if (_origPost) { try { return _origPost(msg, targetOrigin, transfer); } catch (e) {} }
+      };
+    } catch (e) {}
   })();
   true;
 `;
+
+type WebAppMessage =
+  | { type: "clar_ready" }
+  | { type: string; data?: unknown };
 
 export default function AppWebView() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -67,6 +112,23 @@ export default function AppWebView() {
   const [loading, setLoading] = useState(true);
   const [webLoading, setWebLoading] = useState(true);
   const overlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const readyReceivedRef = useRef(false);
+  const loadStartAtRef = useRef<number>(Date.now());
+
+  const clearTimers = useCallback(() => {
+    if (overlayTimer.current) { clearTimeout(overlayTimer.current); overlayTimer.current = null; }
+    if (maxTimer.current)     { clearTimeout(maxTimer.current);     maxTimer.current     = null; }
+  }, []);
+
+  const hideOverlay = useCallback((reason: string) => {
+    if (overlayTimer.current) { clearTimeout(overlayTimer.current); overlayTimer.current = null; }
+    overlayTimer.current = setTimeout(() => {
+      const elapsed = Date.now() - loadStartAtRef.current;
+      diag.log(`[webview] overlay hide via ${reason} (${elapsed}ms)`);
+      setWebLoading(false);
+    }, OVERLAY_HIDE_DELAY_MS);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -83,15 +145,29 @@ export default function AppWebView() {
         setLoading(false);
       }
     })();
-    return () => {
-      if (overlayTimer.current) clearTimeout(overlayTimer.current);
-    };
-  }, [slug]);
+    return () => { clearTimers(); };
+  }, [slug, clearTimers]);
 
   const embeddedUrl = useMemo(
     () => (app ? buildEmbeddedUrl(app.url, accessToken, refreshToken) : ""),
     [app, accessToken, refreshToken]
   );
+
+  const onWebMessage = useCallback((e: WebViewMessageEvent) => {
+    const raw = e?.nativeEvent?.data;
+    if (!raw) return;
+    let msg: WebAppMessage | null = null;
+    try {
+      msg = typeof raw === "string" ? JSON.parse(raw) : (raw as WebAppMessage);
+    } catch {
+      // not JSON — ignore non-handshake messages
+      return;
+    }
+    if (msg && msg.type === "clar_ready") {
+      readyReceivedRef.current = true;
+      hideOverlay("clar_ready");
+    }
+  }, [hideOverlay]);
 
   if (loading) {
     return (
@@ -112,9 +188,6 @@ export default function AppWebView() {
   const allowed = hasEntitlement(app.slug);
 
   // Clean header: clearly the shell's chrome, not the web-app's nav.
-  // - Left: tappable "Apps" pill (back to tiles)
-  // - Center: app name
-  // - Right: X close button (also back to tiles, for users who expect modal-style close)
   const Header = (
     <View style={[styles.header, { borderBottomColor: app.color + "44" }]}>
       <Pressable
@@ -161,21 +234,22 @@ export default function AppWebView() {
           <Text style={styles.webFallbackUrl}>{app.url}</Text>
           <Text style={styles.webFallbackHint}>
             Embedded WebView aktiv im nativen iOS-Build.{"\n"}
-            SSO via Query-Param + Hash-Token.
+            SSO via Query-Param + Hash-Token. Overlay-Handshake: `clar_ready`.
           </Text>
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: colors.brand }}>
           <WebView
             testID="webview-iframe"
             source={{ uri: embeddedUrl }}
-            style={{ flex: 1, backgroundColor: colors.brand }}
+            style={styles.webview}
+            containerStyle={{ backgroundColor: colors.brand }}
             javaScriptEnabled
             domStorageEnabled
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             injectedJavaScriptBeforeContentLoaded={EMBEDDED_INJECTED_JS}
-            applicationNameForUserAgent="clar-shell/1.0.13"
+            applicationNameForUserAgent="clar-shell/1.0.14"
             allowsBackForwardNavigationGestures
             decelerationRate="normal"
             pullToRefreshEnabled
@@ -188,11 +262,24 @@ export default function AppWebView() {
             onPermissionRequest={(event: any) => {
               try { event?.nativeEvent?.grant?.(event.nativeEvent.resources); } catch {}
             }}
-            onLoadStart={() => setWebLoading(true)}
+            onMessage={onWebMessage}
+            onLoadStart={() => {
+              loadStartAtRef.current = Date.now();
+              readyReceivedRef.current = false;
+              setWebLoading(true);
+              clearTimers();
+              // Hard ceiling: never trap the user behind our overlay.
+              maxTimer.current = setTimeout(() => {
+                if (!readyReceivedRef.current) {
+                  diag.log("[webview] overlay hide via max-timeout");
+                  setWebLoading(false);
+                }
+              }, OVERLAY_MAX_MS);
+            }}
             onNavigationStateChange={(navState) => {
-              // Keep the brand overlay until we see an in-app route. This
-              // hides landing/marketing pages that the web app may briefly
-              // render before its beforeLoad/redirect kicks in.
+              // Fallback for web builds that don't yet emit `clar_ready`:
+              // recognise an in-app route after loading finishes.
+              if (readyReceivedRef.current) return;
               const hints = APP_ROUTE_HINTS[app.slug] ?? [];
               const url = navState.url ?? "";
               const path = (() => {
@@ -200,22 +287,8 @@ export default function AppWebView() {
               })();
               const inApp = hints.some((h) => path.includes(h));
               if (inApp && navState.loading === false) {
-                if (overlayTimer.current) clearTimeout(overlayTimer.current);
-                overlayTimer.current = setTimeout(
-                  () => setWebLoading(false),
-                  OVERLAY_HIDE_DELAY_MS
-                );
+                hideOverlay("route-hint");
               }
-            }}
-            onLoadEnd={() => {
-              // Safety net: never trap the user behind our overlay forever.
-              // If the web app does NOT navigate to a recognised in-app route
-              // within OVERLAY_MAX_MS, drop the overlay anyway.
-              if (overlayTimer.current) clearTimeout(overlayTimer.current);
-              overlayTimer.current = setTimeout(
-                () => setWebLoading(false),
-                OVERLAY_MAX_MS
-              );
             }}
           />
           {webLoading && (
@@ -261,6 +334,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.divider + "66",
   },
+  webview: { flex: 1, backgroundColor: colors.brand, opacity: 0.999 },
   error: { textAlign: "center", marginTop: spacing.xl, color: colors.danger },
   lockedBox: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl, gap: spacing.md },
   lockedTitle: { fontSize: 18, fontWeight: "700", color: colors.ink },

@@ -13,6 +13,25 @@ import { isNativeBuild, isRevenueCatAvailable, getEntitlements } from "./revenue
 
 export type DiagItem = { label: string; value: string; ok: boolean };
 
+/**
+ * Lightweight in-memory log buffer for debugging in production builds where
+ * console output is not visible. Last 50 entries are surfaced in the
+ * Diagnostics screen so the user can copy them if something misbehaves.
+ */
+const LOG_BUFFER: { ts: number; msg: string }[] = [];
+const LOG_LIMIT = 50;
+
+export const diag = {
+  log(msg: string) {
+    LOG_BUFFER.push({ ts: Date.now(), msg });
+    if (LOG_BUFFER.length > LOG_LIMIT) LOG_BUFFER.shift();
+    if (typeof console !== "undefined") console.log(`[diag] ${msg}`);
+  },
+  recent(): { ts: number; msg: string }[] {
+    return LOG_BUFFER.slice();
+  },
+};
+
 function mask(value: string | undefined | null): string {
   if (!value) return "—";
   if (value.length <= 10) return value;
