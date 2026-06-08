@@ -1,10 +1,18 @@
 import { useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { colors, spacing } from "@/src/theme";
-import Logo from "@/src/components/Logo";
+import { colors } from "@/src/theme";
 import { useAuth } from "@/src/auth/context";
 
+/**
+ * Invisible splash router.
+ *
+ * The native splash (dark green, no image) stays up via _layout.tsx until
+ * fonts are loaded. Auth check then runs here and replaces to the right
+ * route. We intentionally render NOTHING visible (only the brand-green
+ * background) so there is no double-flash with /onboarding/welcome which
+ * also shows the "clar" logo + tagline.
+ */
 export default function Index() {
   const router = useRouter();
   const { isLoading, isAuthed } = useAuth();
@@ -18,28 +26,12 @@ export default function Index() {
     }
   }, [isLoading, isAuthed, router]);
 
-  return (
-    <View style={styles.container} testID="splash-screen">
-      <Logo size={64} color={colors.cream} />
-      <Text style={styles.tagline}>Mehr clar·heit in deinem Alltag</Text>
-      <ActivityIndicator color={colors.cream} style={styles.spin} />
-    </View>
-  );
+  return <View style={styles.container} testID="splash-screen" />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.brand,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
   },
-  tagline: {
-    color: colors.cream,
-    fontSize: 16,
-    marginTop: spacing.md,
-    opacity: 0.85,
-  },
-  spin: { marginTop: spacing.xl },
 });
