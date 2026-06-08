@@ -2,21 +2,21 @@
   "expo": {
     "name": "clar",
     "slug": "clar",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "clar",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-image.png",
+      "image": "./assets/images/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#2E5C3E"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ch.lautini.clar",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -29,7 +29,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "ch.lautini.clar",
-      "versionCode": 7
+      "versionCode": 8
     },
     "web": {
       "bundler": "metro",
@@ -41,8 +41,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-image.png",
-          "imageWidth": 220,
+          "image": "./assets/images/icon.png",
+          "imageWidth": 140,
           "resizeMode": "contain",
           "backgroundColor": "#2E5C3E"
         }

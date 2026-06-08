@@ -8,11 +8,21 @@
 
 ## 1. Wie die Shell die Web-App lädt
 
+URL-Format (Schema seit Shell v1.0.8):
+
 ```
-https://clar.heim.lautini.ch/#clar_embedded=1&access_token=<JWT>&refresh_token=<JWT>&type=clar_sso
+https://clar.heim.lautini.ch/?clar_embedded=1#access_token=<JWT>&refresh_token=<JWT>&type=clar_sso&clar_embedded=1
 ```
 
-Plus folgendes vor dem Laden des Contents injiziert:
+**Zwei Signale, gleicher Zweck:**
+
+| Signal | Sichtbar wann? | Zweck |
+|---|---|---|
+| Query `?clar_embedded=1` | **Sofort** beim ersten Server-Render | Landingpage/Stripe-UI gar nicht erst rendern |
+| Hash `#access_token=…&refresh_token=…` | Erst client-side nach JS-Hydration | Supabase-Session setzen (Tokens niemals an Server senden) |
+| Hash `#clar_embedded=1` | Erst client-side | Fallback wenn Web-App nur Hash liest |
+
+Plus folgendes injiziert die Shell vor dem Content-Load:
 
 ```js
 window.__CLAR_EMBEDDED__ = true;
@@ -22,14 +32,25 @@ document.documentElement.setAttribute('data-clar-embedded', '1');
 
 Plus User-Agent enthält `clar-shell/1.0.0`.
 
+⚠️ **Sicherheitsregel:** Tokens dürfen **NIE** als Query-Parameter geschickt werden — sie würden in Server-Access-Logs landen. Nur Hash für Tokens, immer.
+
 ---
 
 ## 2. Was die Web-App tun muss
 
-### A) `isEmbedded` detecten (4 Signale, beliebige Kombination)
+### A) `isEmbedded` detecten (5 Signale, beliebige Kombination — **Query-Param wird zuerst geprüft**)
 ```ts
 export function isEmbeddedInShell(): boolean {
   if (typeof window === 'undefined') return false;
+  const query = new URLSearchParams(window.location.search);
+  // Cache the marker so SPA route changes keep working after the URL is cleaned up.
+  if (query.get('clar_embedded') === '1') {
+    try { sessionStorage.setItem('clar_embedded', '1'); } catch {}
+    return true;
+  }
+  if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('clar_embedded') === '1') {
+    return true;
+  }
   const hash = new URLSearchParams(window.location.hash.slice(1));
   return (
     hash.get('clar_embedded') === '1' ||
@@ -40,7 +61,7 @@ export function isEmbeddedInShell(): boolean {
 }
 ```
 
-Cache das Ergebnis in `sessionStorage.setItem('clar_embedded', '1')` damit es auch nach Client-Side-Routing erhalten bleibt.
+**Wichtig:** Der **Query-Parameter-Check muss VOR jeglichem Routing/Auth-Guard** in `main.tsx` (oder `_app.tsx`) laufen, sonst rendert die Landingpage einen Frame lang.
 
 ### B) Supabase-Session aus dem URL-Hash setzen
 Direkt beim App-Bootstrap (in `main.tsx` oder einer Root-Route), **bevor** Auth-Guards laufen:

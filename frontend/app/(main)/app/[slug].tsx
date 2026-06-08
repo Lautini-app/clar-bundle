@@ -16,22 +16,29 @@ const SUPABASE_REFRESH_KEY = "clar.supabase.refresh_token";
  * Builds the WebView URL for an embedded clar·app.
  *
  * Contract with the web apps (see SSO_CONTRACT.md):
- *   1. Hash params: #clar_embedded=1[&access_token=…&refresh_token=…]
- *   2. window.__CLAR_EMBEDDED__ === true (set before content load)
+ *   1. Query param  ?clar_embedded=1          → detectable on first server
+ *      render, before any JS runs. Web app skips landing/marketing page
+ *      and any Stripe/pricing UI immediately.
+ *   2. Hash params  #access_token=…&refresh_token=…&type=clar_sso
+ *      → tokens stay in the hash (never sent to server, never logged).
+ *   3. window.__CLAR_EMBEDDED__ === true (set before content load).
  *
- * The web app's /auth/callback (or root) must read the hash and call
+ * The web app's bootstrap must read the hash and call
  * supabase.auth.setSession() before clearing the URL.
  */
 function buildEmbeddedUrl(baseUrl: string, accessToken: string | null, refreshToken: string | null): string {
   if (!baseUrl) return baseUrl;
-  const sep = baseUrl.includes("#") ? "&" : "#";
-  const parts = ["clar_embedded=1"];
+  // Strip any existing hash so we can rebuild it cleanly with tokens.
+  const [urlNoHash] = baseUrl.split("#");
+  // Add the embedded marker as a query param (server-visible on first render).
+  const qSep = urlNoHash.includes("?") ? "&" : "?";
+  const withQuery = `${urlNoHash}${qSep}clar_embedded=1`;
+  // Append SSO tokens via hash (never reaches the server).
   if (accessToken && refreshToken) {
-    parts.push(`access_token=${encodeURIComponent(accessToken)}`);
-    parts.push(`refresh_token=${encodeURIComponent(refreshToken)}`);
-    parts.push("type=clar_sso");
+    const hash = `clar_embedded=1&access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}&type=clar_sso`;
+    return `${withQuery}#${hash}`;
   }
-  return baseUrl + sep + parts.join("&");
+  return withQuery;
 }
 
 const EMBEDDED_INJECTED_JS = `
