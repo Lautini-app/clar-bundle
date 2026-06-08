@@ -34,10 +34,23 @@ function buildEmbeddedUrl(baseUrl: string, accessToken: string | null, refreshTo
   return withQuery;
 }
 
-const EMBEDDED_INJECTED_JS = `
+/**
+ * Per-app route signatures: when the WebView's current URL contains ANY of
+ * these path fragments, we know the web app has finished its
+ * landing → in-app redirect and we can drop the brand overlay.
+ *
+ * If none of these match within the safety timeout, we drop the overlay
+ * anyway so the user is never stuck staring at our overlay forever.
+ */
+const APP_ROUTE_HINTS: Record<string, string[]> = {
+  heim: ["/heute", "/app", "/dashboard", "/today"],
+  markt: ["/app", "/liste", "/list", "/dashboard"],
+};
+const OVERLAY_MAX_MS = 6000; // worst-case fallback (web app does no redirect)
+const OVERLAY_HIDE_DELAY_MS = 200; // small delay after in-app detection
   (function() {
     window.__CLAR_EMBEDDED__ = true;
-    window.__CLAR_SHELL_VERSION__ = '1.0.11';
+    window.__CLAR_SHELL_VERSION__ = '1.0.13';
     document.documentElement.setAttribute('data-clar-embedded', '1');
     try { sessionStorage.setItem('clar_embedded', '1'); } catch(e) {}
   })();
@@ -162,14 +175,10 @@ export default function AppWebView() {
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             injectedJavaScriptBeforeContentLoaded={EMBEDDED_INJECTED_JS}
-            applicationNameForUserAgent="clar-shell/1.0.11"
+            applicationNameForUserAgent="clar-shell/1.0.13"
             allowsBackForwardNavigationGestures
             decelerationRate="normal"
             pullToRefreshEnabled
-            // File picker / camera support for <input type="file" capture="camera">
-            // iOS: handled natively when NSCameraUsageDescription +
-            //      NSPhotoLibraryUsageDescription are in Info.plist (see app.json)
-            // Android: needs explicit grants below + permissions in AndroidManifest
             allowsInlineMediaPlayback
             mediaPlaybackRequiresUserAction={false}
             allowFileAccess
@@ -177,17 +186,36 @@ export default function AppWebView() {
             allowUniversalAccessFromFileURLs
             originWhitelist={["https://*", "http://*"]}
             onPermissionRequest={(event: any) => {
-              // Auto-grant camera/microphone for WebView content (Android only)
               try { event?.nativeEvent?.grant?.(event.nativeEvent.resources); } catch {}
             }}
             onLoadStart={() => setWebLoading(true)}
+            onNavigationStateChange={(navState) => {
+              // Keep the brand overlay until we see an in-app route. This
+              // hides landing/marketing pages that the web app may briefly
+              // render before its beforeLoad/redirect kicks in.
+              const hints = APP_ROUTE_HINTS[app.slug] ?? [];
+              const url = navState.url ?? "";
+              const path = (() => {
+                try { return new URL(url).pathname; } catch { return url; }
+              })();
+              const inApp = hints.some((h) => path.includes(h));
+              if (inApp && navState.loading === false) {
+                if (overlayTimer.current) clearTimeout(overlayTimer.current);
+                overlayTimer.current = setTimeout(
+                  () => setWebLoading(false),
+                  OVERLAY_HIDE_DELAY_MS
+                );
+              }
+            }}
             onLoadEnd={() => {
-              // Keep the brand overlay for 1500ms after load to mask any
-              // landing-page flash before the web app's beforeLoad redirect runs.
-              // Increased from 350ms after user reports of clar.markt landing
-              // briefly showing through.
+              // Safety net: never trap the user behind our overlay forever.
+              // If the web app does NOT navigate to a recognised in-app route
+              // within OVERLAY_MAX_MS, drop the overlay anyway.
               if (overlayTimer.current) clearTimeout(overlayTimer.current);
-              overlayTimer.current = setTimeout(() => setWebLoading(false), 1500);
+              overlayTimer.current = setTimeout(
+                () => setWebLoading(false),
+                OVERLAY_MAX_MS
+              );
             }}
           />
           {webLoading && (
