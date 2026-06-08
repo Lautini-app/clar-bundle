@@ -37,7 +37,7 @@ function buildEmbeddedUrl(baseUrl: string, accessToken: string | null, refreshTo
 const EMBEDDED_INJECTED_JS = `
   (function() {
     window.__CLAR_EMBEDDED__ = true;
-    window.__CLAR_SHELL_VERSION__ = '1.0.10';
+    window.__CLAR_SHELL_VERSION__ = '1.0.11';
     document.documentElement.setAttribute('data-clar-embedded', '1');
     try { sessionStorage.setItem('clar_embedded', '1'); } catch(e) {}
   })();
@@ -162,10 +162,24 @@ export default function AppWebView() {
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             injectedJavaScriptBeforeContentLoaded={EMBEDDED_INJECTED_JS}
-            applicationNameForUserAgent="clar-shell/1.0.10"
+            applicationNameForUserAgent="clar-shell/1.0.11"
             allowsBackForwardNavigationGestures
             decelerationRate="normal"
             pullToRefreshEnabled
+            // File picker / camera support for <input type="file" capture="camera">
+            // iOS: handled natively when NSCameraUsageDescription +
+            //      NSPhotoLibraryUsageDescription are in Info.plist (see app.json)
+            // Android: needs explicit grants below + permissions in AndroidManifest
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
+            allowFileAccess
+            allowFileAccessFromFileURLs
+            allowUniversalAccessFromFileURLs
+            originWhitelist={["https://*", "http://*"]}
+            onPermissionRequest={(event: any) => {
+              // Auto-grant camera/microphone for WebView content (Android only)
+              try { event?.nativeEvent?.grant?.(event.nativeEvent.resources); } catch {}
+            }}
             onLoadStart={() => setWebLoading(true)}
             onLoadEnd={() => {
               // Keep the brand overlay for 1500ms after load to mask any

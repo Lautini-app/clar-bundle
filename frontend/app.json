@@ -2,7 +2,7 @@
   "expo": {
     "name": "clar",
     "slug": "clar",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "clar",
@@ -16,10 +16,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ch.lautini.clar",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Scanne Belege, Produkte und Etiketten in deinen clar·Apps.",
+        "NSPhotoLibraryUsageDescription": "Wähle Fotos für deine clar·Apps aus deiner Mediathek.",
+        "NSPhotoLibraryAddUsageDescription": "Speichere Bilder aus den clar·Apps in deiner Mediathek.",
+        "NSMicrophoneUsageDescription": "Diktiere Notizen und Einträge in deinen clar·Apps."
       }
     },
     "android": {
@@ -29,7 +33,13 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "ch.lautini.clar",
-      "versionCode": 10
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "versionCode": 11
     },
     "web": {
       "bundler": "metro",
