@@ -1,14 +1,15 @@
 import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from "react-native";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Clipboard from "expo-clipboard";
 import { useAuth } from "@/src/auth/context";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
 import { clearWebViewSession } from "@/src/webview/session";
-import { getDiagnostics } from "@/src/lib/diagnostics";
+import { getDiagnostics, diag } from "@/src/lib/diagnostics";
 
 export default function Settings() {
   const router = useRouter();
@@ -97,23 +98,50 @@ export default function Settings() {
 
         <Diagnostics />
 
-        <Text style={styles.footer}>clar by lautini · v1.0.13 (build 13)</Text>
+        <Text style={styles.footer}>clar by lautini · v1.0.14 (build 14)</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+function formatTs(ts: number): string {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 function Diagnostics() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Array<{ label: string; value: string; ok: boolean }>>([]);
+  const [logs, setLogs] = useState<Array<{ ts: number; msg: string }>>([]);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const [data, recent] = await Promise.all([
+      getDiagnostics(),
+      Promise.resolve(diag.recent()),
+    ]);
+    setItems(data);
+    setLogs(recent.slice().reverse()); // newest first
+  }, []);
 
   const toggle = async () => {
     const next = !open;
     setOpen(next);
-    if (next) {
-      const data = await getDiagnostics();
-      setItems(data);
+    if (next) await refresh();
+  };
+
+  const copyAll = async () => {
+    const header = items.map((it) => `${it.ok ? "✓" : "✗"} ${it.label}: ${it.value}`).join("\n");
+    const body = logs.map((l) => `[${formatTs(l.ts)}] ${l.msg}`).join("\n");
+    const out = `clar Diagnose\n=============\n${header}\n\nLogs\n----\n${body || "(keine Einträge)"}`;
+    try {
+      await Clipboard.setStringAsync(out);
+      setCopyHint("In Zwischenablage kopiert ✓");
+    } catch {
+      setCopyHint("Kopieren fehlgeschlagen");
     }
+    setTimeout(() => setCopyHint(null), 1800);
   };
 
   return (
@@ -136,6 +164,42 @@ function Diagnostics() {
             mindestens eines der drei Entitlements (heim / markt / clar.app)
             sollte "aktiv" zeigen.
           </Text>
+
+          <View style={styles.diagLogsHeader}>
+            <Text style={styles.diagLogsTitle}>Runtime-Logs ({logs.length})</Text>
+            <View style={styles.diagActions}>
+              <Pressable testID="diagnostics-refresh" onPress={refresh} style={styles.diagBtn} hitSlop={6}>
+                <Ionicons name="refresh" size={14} color={colors.inkSoft} />
+              </Pressable>
+              <Pressable testID="diagnostics-copy" onPress={copyAll} style={styles.diagBtn} hitSlop={6}>
+                <Ionicons name="copy-outline" size={14} color={colors.inkSoft} />
+                <Text style={styles.diagBtnText}>Kopieren</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {logs.length === 0 ? (
+            <Text style={styles.diagLogsEmpty}>
+              Noch keine Logs. Öffne eine App-Kachel — die WebView-Overlay-Logik
+              schreibt hierher z. B. "overlay hide via clar_ready (340ms)".
+            </Text>
+          ) : (
+            <ScrollView
+              style={styles.diagLogsBox}
+              contentContainerStyle={{ padding: spacing.sm }}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+            >
+              {logs.map((l, idx) => (
+                <Text key={`${l.ts}-${idx}`} style={styles.diagLogLine} selectable>
+                  <Text style={styles.diagLogTs}>{formatTs(l.ts)}  </Text>
+                  {l.msg}
+                </Text>
+              ))}
+            </ScrollView>
+          )}
+
+          {copyHint && <Text style={styles.diagCopyHint}>{copyHint}</Text>}
         </View>
       )}
     </View>
@@ -181,5 +245,43 @@ const styles = StyleSheet.create({
   diagLabel: { fontSize: 12, color: colors.inkSoft, flex: 1 },
   diagValue: { fontSize: 12, color: colors.ink, fontWeight: "600", maxWidth: "55%", textAlign: "right" },
   diagHint: { fontSize: 10, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 14 },
+  diagLogsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  diagLogsTitle: { fontSize: 11, fontWeight: "700", color: colors.inkSoft, letterSpacing: 0.4, textTransform: "uppercase" },
+  diagActions: { flexDirection: "row", gap: 6 },
+  diagBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.divider + "55",
+  },
+  diagBtnText: { fontSize: 11, color: colors.inkSoft, fontWeight: "600" },
+  diagLogsBox: {
+    maxHeight: 180,
+    marginTop: 6,
+    backgroundColor: colors.paper,
+    borderRadius: radius.md ?? 8,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  diagLogsEmpty: { fontSize: 10, color: colors.inkMuted, marginTop: 6, lineHeight: 14, fontStyle: "italic" },
+  diagLogLine: {
+    fontSize: 10,
+    color: colors.ink,
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
+    lineHeight: 14,
+  },
+  diagLogTs: { color: colors.inkMuted },
+  diagCopyHint: { fontSize: 10, color: colors.success, marginTop: 6, textAlign: "right" },
   footer: { textAlign: "center", color: colors.inkMuted, fontSize: 11, marginTop: spacing.md },
 });
