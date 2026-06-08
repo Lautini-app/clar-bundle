@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
+import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, ClarApp } from "@/src/api/client";
 import { useSubscription } from "@/src/subscription/context";
@@ -148,6 +149,50 @@ export default function AppWebView() {
     return () => { clearTimers(); };
   }, [slug, clearTimers]);
 
+  /**
+   * iOS-Crash-Workaround: WKWebView ruft `navigator.mediaDevices.getUserMedia`
+   * unter iOS 14+ erst dann zuverlässig auf, wenn die native Kamera- und
+   * Foto-Berechtigung im Host-App-Prozess **bereits registriert** ist.
+   * Sonst stürzt der WebView-Mediaserver beim ersten Foto-Scan ab — selbst
+   * wenn die Info.plist-Strings vorhanden sind.
+   *
+   * Wir fragen die Berechtigungen daher **bevor** die WebView überhaupt
+   * gemountet wird einmal an. Das löst aus iOS-Sicht die `AVCaptureDevice`-
+   * Registry an, sodass WKWebView danach `getUserMedia` ohne Crash bedienen
+   * kann. Bei "denied" oder "undetermined" wird der iOS-Dialog gezeigt —
+   * danach kann der User selbst entscheiden, ob er Foto-Features nutzt.
+   *
+   * Wir blockieren die WebView NICHT bei Ablehnung — Web-Apps fallen dann
+   * auf "Datei wählen" zurück bzw. zeigen ihre eigene Fehlermeldung.
+   * Siehe handle_permissions_contract.
+   */
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const camStatus = await ImagePicker.getCameraPermissionsAsync();
+        if (camStatus.status === "undetermined" && camStatus.canAskAgain) {
+          const next = await ImagePicker.requestCameraPermissionsAsync();
+          diag.log(`[perm] camera ${camStatus.status} → ${next.status}`);
+        } else {
+          diag.log(`[perm] camera ${camStatus.status}`);
+        }
+
+        const libStatus = await ImagePicker.getMediaLibraryPermissionsAsync();
+        if (libStatus.status === "undetermined" && libStatus.canAskAgain) {
+          const next = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!cancelled) diag.log(`[perm] photos ${libStatus.status} → ${next.status}`);
+        } else if (!cancelled) {
+          diag.log(`[perm] photos ${libStatus.status}`);
+        }
+      } catch (e: unknown) {
+        diag.log(`[perm] pre-warm failed: ${String((e as Error)?.message ?? e)}`);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const embeddedUrl = useMemo(
     () => (app ? buildEmbeddedUrl(app.url, accessToken, refreshToken) : ""),
     [app, accessToken, refreshToken]
@@ -259,7 +304,17 @@ export default function AppWebView() {
             allowFileAccessFromFileURLs
             allowUniversalAccessFromFileURLs
             originWhitelist={["https://*", "http://*"]}
+            // iOS WKWebView: auto-grant getUserMedia permission for Camera/Mic.
+            // Info.plist already declares NSCameraUsageDescription +
+            // NSMicrophoneUsageDescription, AND we pre-warmed the native
+            // permission via expo-image-picker in the parent useEffect above.
+            // Without this prop WKWebView refuses media capture by default
+            // → Foto-Scan crashes / fails silently in embedded web apps.
+            mediaCapturePermissionGrantType="grant"
             onPermissionRequest={(event: any) => {
+              // Android only — iOS uses the prop above. We still grant
+              // defensively here so future RNWebView versions that emit
+              // this event on iOS don't regress us.
               try { event?.nativeEvent?.grant?.(event.nativeEvent.resources); } catch {}
             }}
             onMessage={onWebMessage}
