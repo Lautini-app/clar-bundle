@@ -10,6 +10,7 @@ type AuthState = {
   isLoading: boolean;
   isAuthed: boolean;
   signInWithApple: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -123,6 +124,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  /**
+   * Hidden reviewer login (App Store Review Notes: tap "clar" logo 5× to reveal).
+   * Uses Supabase email/password sign-in, then exchanges the Supabase token
+   * with the shell backend — same flow as Apple, just a different identity
+   * provider. The backend auto-grants all entitlements for the reviewer email
+   * (see _is_reviewer in server.py), so the reviewer never needs to make an
+   * IAP purchase to test the embedded clar·apps.
+   */
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !password) throw new Error("E-Mail und Passwort sind erforderlich");
+
+    if (Platform.OS === "web") {
+      // Web preview: Supabase may not be configured with valid keys; we just
+      // skip the Supabase round-trip and let the backend create a mock user.
+      const mockId = `mock_${trimmed}`;
+      const res = await api.signInWithApple({
+        apple_user_id: mockId,
+        email: trimmed,
+        full_name: "Reviewer",
+        supabase_access_token: null,
+      });
+      await api.setToken(res.token);
+      await rcLogin(mockId);
+      await refresh();
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: trimmed,
+      password,
+    });
+    if (error || !data.session) {
+      throw new Error(error?.message ?? "Anmeldung fehlgeschlagen");
+    }
+    await cacheSupabaseTokens(data.session.access_token, data.session.refresh_token);
+
+    const res = await api.signInWithApple({
+      apple_user_id: data.user?.id ?? `email_${trimmed}`,
+      email: data.user?.email ?? trimmed,
+      full_name: (data.user?.user_metadata?.full_name as string | undefined) ?? null,
+      supabase_access_token: data.session.access_token,
+    });
+    await api.setToken(res.token);
+    await rcLogin(data.user?.id ?? trimmed);
+    await refresh();
+  }, [refresh]);
+
   const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
@@ -137,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isAuthed: !!user, signInWithApple, signOut, refresh }}
+      value={{ user, isLoading, isAuthed: !!user, signInWithApple, signInWithEmail, signOut, refresh }}
     >
       {children}
     </AuthContext.Provider>

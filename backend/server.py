@@ -25,6 +25,17 @@ JWT_ALGO = 'HS256'
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
 
+# App-Store-Reviewer-Account: bei Login als dieser User werden serverseitig
+# automatisch alle verfügbaren Apps freigeschaltet (Bundle-Entitlement),
+# damit Apple Reviewer die App ohne echten IAP-Kauf testen kann.
+# Vgl. App-Review-Notes / "Anmeldeinformationen" im App Store Connect.
+REVIEWER_EMAIL = os.environ.get('REVIEWER_EMAIL', 'appstore.reviewer@lautini.ch').lower()
+
+
+def _is_reviewer(user: dict) -> bool:
+    email = (user or {}).get('email') or ''
+    return email.lower() == REVIEWER_EMAIL
+
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
@@ -222,6 +233,17 @@ async def save_selected_apps(payload: SelectedAppsPayload, user: dict = Depends(
 
 @api_router.get("/subscription/status", response_model=SubscriptionStatus)
 async def subscription_status(user: dict = Depends(get_current_user)):
+    # App-Store-Reviewer: alle Apps automatisch freischalten (kein IAP nötig)
+    if _is_reviewer(user):
+        available_slugs = [a.slug for a in APPS_CATALOG if a.available]
+        return SubscriptionStatus(
+            plan="bundle",
+            entitlement="bundle",
+            apps_unlocked=available_slugs,
+            billing_period="reviewer",
+            price_chf=0.0,
+            expires_at=(datetime.now(timezone.utc) + timedelta(days=365)).isoformat(),
+        )
     sub = await db.subscriptions.find_one({"user_id": user["id"]}, {"_id": 0})
     if not sub:
         return SubscriptionStatus()
