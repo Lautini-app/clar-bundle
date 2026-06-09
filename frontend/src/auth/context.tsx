@@ -73,23 +73,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === "ios") {
       // Real Apple Sign In via expo-apple-authentication
       const AppleAuth = await import("expo-apple-authentication");
-      const credential = await AppleAuth.signInAsync({
-        requestedScopes: [
-          AppleAuth.AppleAuthenticationScope.FULL_NAME,
-          AppleAuth.AppleAuthenticationScope.EMAIL,
-        ],
-      });
+
+      // Pre-flight diagnostic: is Apple Sign-In even available on this device/build?
+      try {
+        const available = await AppleAuth.isAvailableAsync();
+        diag.log(`[apple-signin] isAvailable=${available}`);
+        if (!available) {
+          throw new Error("Apple Sign-In ist auf diesem Gerät nicht verfügbar. Stelle sicher dass du bei iCloud eingeloggt bist.");
+        }
+      } catch (e: unknown) {
+        diag.log(`[apple-signin] isAvailable check failed: ${String((e as Error)?.message ?? e)}`);
+      }
+
+      diag.log("[apple-signin] calling AppleAuth.signInAsync …");
+      let credential: Awaited<ReturnType<typeof AppleAuth.signInAsync>>;
+      try {
+        credential = await AppleAuth.signInAsync({
+          requestedScopes: [
+            AppleAuth.AppleAuthenticationScope.FULL_NAME,
+            AppleAuth.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        diag.log(`[apple-signin] OK — user=${credential.user?.slice(0, 12)}… hasToken=${!!credential.identityToken} hasEmail=${!!credential.email}`);
+      } catch (e: unknown) {
+        // Surface the EXACT Apple error so we can diagnose
+        const err = e as { code?: string; message?: string; name?: string };
+        const code = err?.code ?? "unknown";
+        const msg = err?.message ?? String(e);
+        diag.log(`[apple-signin] FAILED code=${code} name=${err?.name ?? "?"} msg=${msg}`);
+        // ERR_REQUEST_CANCELED → user dismissed → silent
+        if (code === "ERR_REQUEST_CANCELED" || /cancel/i.test(msg)) {
+          throw new Error("Anmeldung abgebrochen");
+        }
+        // ERR_REQUEST_UNKNOWN → "authorization attempt failed for an unknown reason"
+        //   → 99% des Provisioning Profile fehlt die Sign-in-with-Apple Entitlement,
+        //   ODER der User hat App-Zugang in iOS-Settings widerrufen
+        throw new Error(
+          `Apple Sign-In fehlgeschlagen (${code}): ${msg}. ` +
+          `Tipp: iPhone → Einstellungen → Apple-ID → Passwort & Sicherheit → ` +
+          `"Mit Apple anmelden" → falls "clar" gelistet ist, App-Zugang ` +
+          `entfernen und erneut versuchen. Sonst ist das Provisioning ` +
+          `Profile ohne "Sign in with Apple" Entitlement signiert worden.`
+        );
+      }
 
       if (!credential.identityToken) {
+        diag.log("[apple-signin] no identityToken in credential");
         throw new Error("Apple Sign-In: kein identityToken erhalten");
       }
 
       // Exchange Apple identity token for Supabase session
+      diag.log("[apple-signin] calling supabase.auth.signInWithIdToken …");
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: credential.identityToken,
       });
-      if (error || !data.session) throw new Error(error?.message ?? "Supabase signIn fehlgeschlagen");
+      if (error || !data.session) {
+        diag.log(`[apple-signin] supabase failed: ${error?.message ?? "no session"}`);
+        throw new Error(error?.message ?? "Supabase signIn fehlgeschlagen");
+      }
+      diag.log("[apple-signin] supabase session OK");
 
       supabaseAccessToken = data.session.access_token;
       appleUserId = data.user?.id ?? credential.user;
