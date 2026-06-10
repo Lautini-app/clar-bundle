@@ -8,6 +8,7 @@ import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from "@/src/auth/context";
 import { SubscriptionProvider } from "@/src/subscription/context";
 import { configureRevenueCat } from "@/src/lib/revenuecat";
+import { useUniversalLinks } from "@/src/lib/useUniversalLinks";
 import { colors } from "@/src/theme";
 
 // Keep the native splash visible from cold start until icon fonts register
@@ -21,6 +22,7 @@ configureRevenueCat();
 function SplashGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useAuth();
   const [hidden, setHidden] = useState(false);
+  useUniversalLinks();
 
   useEffect(() => {
     if (!isLoading && !hidden) {

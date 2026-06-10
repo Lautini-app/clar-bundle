@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, User } from "../api/client";
 import { supabase } from "../lib/supabase";
 import { rcLogin, rcLogout } from "../lib/revenuecat";
+import { diag } from "../lib/diagnostics";
 
 type AuthState = {
   user: User | null;

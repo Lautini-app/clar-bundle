@@ -19,6 +19,10 @@
       "bundleIdentifier": "ch.lautini.clar",
       "buildNumber": "15",
       "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:clar.heim.lautini.ch",
+        "applinks:clar.markt.lautini.ch"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Scanne Belege, Produkte und Etiketten in deinen clar·Apps.",

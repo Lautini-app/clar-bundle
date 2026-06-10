@@ -104,7 +104,7 @@ type WebAppMessage =
   | { type: string; data?: unknown };
 
 export default function AppWebView() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, deeplink } = useLocalSearchParams<{ slug: string; deeplink?: string }>();
   const router = useRouter();
   const { hasEntitlement } = useSubscription();
   const [app, setApp] = useState<ClarApp | null>(null);
@@ -193,10 +193,29 @@ export default function AppWebView() {
     return () => { cancelled = true; };
   }, []);
 
-  const embeddedUrl = useMemo(
-    () => (app ? buildEmbeddedUrl(app.url, accessToken, refreshToken) : ""),
-    [app, accessToken, refreshToken]
-  );
+  const embeddedUrl = useMemo(() => {
+    if (!app) return "";
+    // If the user arrived via Universal Link, swap the path of the embedded
+    // URL so the web app deep-links to the requested screen — same host,
+    // user-requested path/query/hash preserved.
+    let base = app.url;
+    if (deeplink && typeof deeplink === "string" && deeplink.startsWith("/")) {
+      try {
+        const u = new URL(app.url);
+        const dl = deeplink.split("#")[0];
+        const [dlPath, dlQuery] = dl.split("?");
+        u.pathname = dlPath || u.pathname;
+        if (dlQuery) u.search = `?${dlQuery}`;
+        const dlHashIdx = deeplink.indexOf("#");
+        if (dlHashIdx >= 0) u.hash = deeplink.slice(dlHashIdx);
+        base = u.toString();
+        diag.log(`[deeplink] forwarding to webview: ${base}`);
+      } catch (e) {
+        diag.log(`[deeplink] URL build failed: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+    return buildEmbeddedUrl(base, accessToken, refreshToken);
+  }, [app, accessToken, refreshToken, deeplink]);
 
   const onWebMessage = useCallback((e: WebViewMessageEvent) => {
     const raw = e?.nativeEvent?.data;
