@@ -86,6 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let email: string | null = null;
     let fullName: string | null = null;
 
+    // Wrap the entire Apple Sign-In flow in a single try/catch that
+    // captures the RAW error object as JSON (stack, name, code, all
+    // properties) and stores it in AsyncStorage under 'clar.lastAuthError'.
+    // The Settings → Diagnose screen surfaces this so we can finally
+    // see the exact origin of the "Property 'diag' doesn't exist" crash.
+    try {
     if (Platform.OS === "ios") {
       // Real Apple Sign In via expo-apple-authentication
       const AppleAuth = await import("expo-apple-authentication");
@@ -181,6 +187,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Tie this device's RevenueCat anonymous purchases to the Supabase user.
     await rcLogin(appleUserId);
     await refresh();
+    // Success → clear any previous error blob
+    try { await AsyncStorage.removeItem("clar.lastAuthError"); } catch { /* noop */ }
+    } catch (rootErr: unknown) {
+      // CAPTURE EVERYTHING about the error — name, message, code, stack,
+      // own properties — and persist as JSON so the Diagnose screen can
+      // surface it. This is the only reliable way to debug a production
+      // iOS build where console.log is invisible.
+      try {
+        const err = rootErr as Record<string, unknown> & { stack?: string; message?: string; name?: string };
+        const ownProps: Record<string, unknown> = {};
+        try {
+          for (const k of Object.getOwnPropertyNames(err ?? {})) {
+            try { ownProps[k] = (err as Record<string, unknown>)[k]; } catch { /* skip */ }
+          }
+        } catch { /* skip */ }
+        const blob = {
+          ts: Date.now(),
+          when: "signInWithApple",
+          buildVersion: "see Diagnose → App-Version",
+          name: err?.name ?? typeof rootErr,
+          message: err?.message ?? String(rootErr),
+          stack: err?.stack ?? "(no stack)",
+          ownProps,
+          stringified: (() => { try { return JSON.stringify(rootErr); } catch { return "(unserializable)"; } })(),
+        };
+        await AsyncStorage.setItem("clar.lastAuthError", JSON.stringify(blob, null, 2));
+        safeLog(`[apple-signin] CAUGHT ROOT: name=${blob.name} msg=${blob.message}`);
+      } catch { /* never let logging crash auth */ }
+      // Re-throw so the sign-in screen still displays the error
+      throw rootErr;
+    }
   }, [refresh]);
 
   /**

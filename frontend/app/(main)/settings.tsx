@@ -119,14 +119,17 @@ function Diagnostics() {
   const [items, setItems] = useState<Array<{ label: string; value: string; ok: boolean }>>([]);
   const [logs, setLogs] = useState<Array<{ ts: number; msg: string }>>([]);
   const [copyHint, setCopyHint] = useState<string | null>(null);
+  const [authErr, setAuthErr] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [data, recent] = await Promise.all([
+    const [data, recent, lastErr] = await Promise.all([
       getDiagnostics(),
       Promise.resolve(diag.recent()),
+      AsyncStorage.getItem("clar.lastAuthError").catch(() => null),
     ]);
     setItems(data);
     setLogs(recent.slice().reverse()); // newest first
+    setAuthErr(lastErr);
   }, []);
 
   const toggle = async () => {
@@ -138,7 +141,8 @@ function Diagnostics() {
   const copyAll = async () => {
     const header = items.map((it) => `${it.ok ? "✓" : "✗"} ${it.label}: ${it.value}`).join("\n");
     const body = logs.map((l) => `[${formatTs(l.ts)}] ${l.msg}`).join("\n");
-    const out = `clar Diagnose\n=============\n${header}\n\nLogs\n----\n${body || "(keine Einträge)"}`;
+    const errBlock = authErr ? `\n\nLast Auth Error\n---------------\n${authErr}` : "";
+    const out = `clar Diagnose\n=============\n${header}\n\nLogs\n----\n${body || "(keine Einträge)"}${errBlock}`;
     try {
       await Clipboard.setStringAsync(out);
       setCopyHint("In Zwischenablage kopiert ✓");
@@ -204,6 +208,15 @@ function Diagnostics() {
           )}
 
           {copyHint && <Text style={styles.diagCopyHint}>{copyHint}</Text>}
+
+          {authErr && (
+            <View style={{ marginTop: spacing.md, padding: spacing.sm, backgroundColor: "#FFE9E9", borderRadius: radius.md, borderWidth: 1, borderColor: "#FFB7B7" }}>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#A21F1F", marginBottom: 4 }}>LETZTER AUTH-FEHLER (Apple Sign-In)</Text>
+              <Text selectable style={{ fontSize: 10, color: "#5A0F0F", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 13 }}>
+                {authErr}
+              </Text>
+            </View>
+          )}
         </View>
       )}
     </View>
