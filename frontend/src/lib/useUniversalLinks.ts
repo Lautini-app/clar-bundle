@@ -1,7 +1,20 @@
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useEffect, useRef } from "react";
-import { safeLog } from "./diagnostics";
+
+/**
+ * Inline safe log helper — NO external module dependency. See
+ * src/auth/context.tsx for rationale (avoids "Property 'diag' doesn't exist"
+ * crashes from Metro/Hermes bundling edge-cases on iOS native builds).
+ */
+function safeLog(msg: string): void {
+  try {
+    // eslint-disable-next-line no-console
+    if (typeof console !== "undefined") console.log(`[deeplink] ${msg}`);
+  } catch {
+    /* noop */
+  }
+}
 
 /**
  * Map of Universal-Link hostnames → in-shell app slug.

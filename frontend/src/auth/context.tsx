@@ -4,7 +4,22 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, User } from "../api/client";
 import { supabase } from "../lib/supabase";
 import { rcLogin, rcLogout } from "../lib/revenuecat";
-import { safeLog } from "../lib/diagnostics";
+
+/**
+ * Inline safe log helper — intentionally has NO external module dependency
+ * so that a Metro/Hermes bundling edge-case in the diagnostics module
+ * can NEVER crash the auth flow. Replaces the previous `diag.log` and
+ * `safeLog` imports that triggered "Property 'diag' doesn't exist" on
+ * iOS native builds.
+ */
+function safeLog(msg: string): void {
+  try {
+    // eslint-disable-next-line no-console
+    if (typeof console !== "undefined") console.log(`[auth] ${msg}`);
+  } catch {
+    /* noop — never let logging break auth */
+  }
+}
 
 type AuthState = {
   user: User | null;
