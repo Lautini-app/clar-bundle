@@ -4,7 +4,33 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, User } from "../api/client";
 import { supabase } from "../lib/supabase";
 import { rcLogin, rcLogout } from "../lib/revenuecat";
-import { diag } from "../lib/diagnostics";
+import * as Diagnostics from "../lib/diagnostics";
+
+/**
+ * Defensive log wrapper. NEVER throws — even if the `diag` module
+ * fails to resolve at runtime (Hermes bundle edge-cases, hot-reload
+ * race, etc.) we still get a console.log and the auth flow keeps
+ * running. This used to crash Apple Sign-In with
+ *   "Property 'diag' doesn't exist"
+ * whenever the named import was undefined on the native binary.
+ */
+function safeLog(msg: string): void {
+  try {
+    const d = (Diagnostics as { diag?: { log?: (m: string) => void } })?.diag;
+    if (d && typeof d.log === "function") {
+      d.log(msg);
+      return;
+    }
+  } catch {
+    /* swallow — never let logging break auth */
+  }
+  try {
+    // eslint-disable-next-line no-console
+    if (typeof console !== "undefined") console.log(`[diag-fallback] ${msg}`);
+  } catch {
+    /* noop */
+  }
+}
 
 type AuthState = {
   user: User | null;
@@ -78,15 +104,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Pre-flight diagnostic: is Apple Sign-In even available on this device/build?
       try {
         const available = await AppleAuth.isAvailableAsync();
-        diag.log(`[apple-signin] isAvailable=${available}`);
+        safeLog(`[apple-signin] isAvailable=${available}`);
         if (!available) {
           throw new Error("Apple Sign-In ist auf diesem Gerät nicht verfügbar. Stelle sicher dass du bei iCloud eingeloggt bist.");
         }
       } catch (e: unknown) {
-        diag.log(`[apple-signin] isAvailable check failed: ${String((e as Error)?.message ?? e)}`);
+        safeLog(`[apple-signin] isAvailable check failed: ${String((e as Error)?.message ?? e)}`);
       }
 
-      diag.log("[apple-signin] calling AppleAuth.signInAsync …");
+      safeLog("[apple-signin] calling AppleAuth.signInAsync …");
       let credential: Awaited<ReturnType<typeof AppleAuth.signInAsync>>;
       try {
         credential = await AppleAuth.signInAsync({
@@ -95,13 +121,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             AppleAuth.AppleAuthenticationScope.EMAIL,
           ],
         });
-        diag.log(`[apple-signin] OK — user=${credential.user?.slice(0, 12)}… hasToken=${!!credential.identityToken} hasEmail=${!!credential.email}`);
+        safeLog(`[apple-signin] OK — user=${credential.user?.slice(0, 12)}… hasToken=${!!credential.identityToken} hasEmail=${!!credential.email}`);
       } catch (e: unknown) {
         // Surface the EXACT Apple error so we can diagnose
         const err = e as { code?: string; message?: string; name?: string };
         const code = err?.code ?? "unknown";
         const msg = err?.message ?? String(e);
-        diag.log(`[apple-signin] FAILED code=${code} name=${err?.name ?? "?"} msg=${msg}`);
+        safeLog(`[apple-signin] FAILED code=${code} name=${err?.name ?? "?"} msg=${msg}`);
         // ERR_REQUEST_CANCELED → user dismissed → silent
         if (code === "ERR_REQUEST_CANCELED" || /cancel/i.test(msg)) {
           throw new Error("Anmeldung abgebrochen");
@@ -119,21 +145,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!credential.identityToken) {
-        diag.log("[apple-signin] no identityToken in credential");
+        safeLog("[apple-signin] no identityToken in credential");
         throw new Error("Apple Sign-In: kein identityToken erhalten");
       }
 
       // Exchange Apple identity token for Supabase session
-      diag.log("[apple-signin] calling supabase.auth.signInWithIdToken …");
+      safeLog("[apple-signin] calling supabase.auth.signInWithIdToken …");
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: credential.identityToken,
       });
       if (error || !data.session) {
-        diag.log(`[apple-signin] supabase failed: ${error?.message ?? "no session"}`);
+        safeLog(`[apple-signin] supabase failed: ${error?.message ?? "no session"}`);
         throw new Error(error?.message ?? "Supabase signIn fehlgeschlagen");
       }
-      diag.log("[apple-signin] supabase session OK");
+      safeLog("[apple-signin] supabase session OK");
 
       supabaseAccessToken = data.session.access_token;
       appleUserId = data.user?.id ?? credential.user;
