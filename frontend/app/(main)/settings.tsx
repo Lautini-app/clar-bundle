@@ -9,7 +9,7 @@ import { useAuth } from "@/src/auth/context";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
 import { clearWebViewSession } from "@/src/webview/session";
-import { getDiagnostics, diag } from "@/src/lib/diagnostics";
+import { getDiagnostics, diag } from "../../src/lib/diagnostics";
 
 export default function Settings() {
   const router = useRouter();

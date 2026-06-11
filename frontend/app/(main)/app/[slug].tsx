@@ -9,7 +9,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, ClarApp } from "@/src/api/client";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
-import { diag, safeLog } from "@/src/lib/diagnostics";
+
+/**
+ * Inline diagnostics — NO external module dependency. Avoids
+ * "Property 'diag' doesn't exist" crashes from Metro/Hermes bundling
+ * edge-cases on iOS native builds.
+ */
+const diag = {
+  log(msg: string): void {
+    try {
+      // eslint-disable-next-line no-console
+      if (typeof console !== "undefined") console.log(`[webview] ${msg}`);
+    } catch {
+      /* noop */
+    }
+  },
+};
+const safeLog = (msg: string) => diag.log(msg);
 
 const SUPABASE_ACCESS_KEY = "clar.supabase.access_token";
 const SUPABASE_REFRESH_KEY = "clar.supabase.refresh_token";
