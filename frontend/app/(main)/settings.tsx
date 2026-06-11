@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
+import Constants from "expo-constants";
 import { useAuth } from "@/src/auth/context";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
@@ -98,7 +99,10 @@ export default function Settings() {
 
         <Diagnostics />
 
-        <Text style={styles.footer}>clar by lautini · v1.0.14 (build 14)</Text>
+        <Text style={styles.footer}>
+          clar by lautini · v{Constants.expoConfig?.version ?? "—"}
+          {Constants.expoConfig?.ios?.buildNumber ? ` (build ${Constants.expoConfig.ios.buildNumber})` : ""}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
