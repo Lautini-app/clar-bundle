@@ -9,7 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, ClarApp } from "@/src/api/client";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
-import { diag } from "@/src/lib/diagnostics";
+import { diag, safeLog } from "@/src/lib/diagnostics";
 
 const SUPABASE_ACCESS_KEY = "clar.supabase.access_token";
 const SUPABASE_REFRESH_KEY = "clar.supabase.refresh_token";

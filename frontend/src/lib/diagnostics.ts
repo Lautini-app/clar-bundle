@@ -22,15 +22,42 @@ const LOG_BUFFER: { ts: number; msg: string }[] = [];
 const LOG_LIMIT = 50;
 
 export const diag = {
-  log(msg: string) {
-    LOG_BUFFER.push({ ts: Date.now(), msg });
-    if (LOG_BUFFER.length > LOG_LIMIT) LOG_BUFFER.shift();
-    if (typeof console !== "undefined") console.log(`[diag] ${msg}`);
+  log(msg: string): void {
+    try {
+      LOG_BUFFER.push({ ts: Date.now(), msg });
+      if (LOG_BUFFER.length > LOG_LIMIT) LOG_BUFFER.shift();
+      if (typeof console !== "undefined") console.log(`[diag] ${msg}`);
+    } catch {
+      /* never let logging crash the app */
+    }
   },
   recent(): { ts: number; msg: string }[] {
-    return LOG_BUFFER.slice();
+    try {
+      return LOG_BUFFER.slice();
+    } catch {
+      return [];
+    }
   },
 };
+
+/**
+ * Ultra-defensive log helper. Use this EVERYWHERE instead of `diag.log`
+ * to guarantee that a logging call can NEVER crash a critical user flow
+ * (auth, deeplink, paywall). Safe to call even if the module re-export
+ * lookup fails at runtime in Hermes.
+ */
+export function safeLog(msg: string): void {
+  try {
+    diag.log(msg);
+  } catch {
+    try {
+      // eslint-disable-next-line no-console
+      if (typeof console !== "undefined") console.log(`[diag-fallback] ${msg}`);
+    } catch {
+      /* noop */
+    }
+  }
+}
 
 function mask(value: string | undefined | null): string {
   if (!value) return "—";

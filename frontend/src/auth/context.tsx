@@ -4,33 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, User } from "../api/client";
 import { supabase } from "../lib/supabase";
 import { rcLogin, rcLogout } from "../lib/revenuecat";
-import * as Diagnostics from "../lib/diagnostics";
-
-/**
- * Defensive log wrapper. NEVER throws — even if the `diag` module
- * fails to resolve at runtime (Hermes bundle edge-cases, hot-reload
- * race, etc.) we still get a console.log and the auth flow keeps
- * running. This used to crash Apple Sign-In with
- *   "Property 'diag' doesn't exist"
- * whenever the named import was undefined on the native binary.
- */
-function safeLog(msg: string): void {
-  try {
-    const d = (Diagnostics as { diag?: { log?: (m: string) => void } })?.diag;
-    if (d && typeof d.log === "function") {
-      d.log(msg);
-      return;
-    }
-  } catch {
-    /* swallow — never let logging break auth */
-  }
-  try {
-    // eslint-disable-next-line no-console
-    if (typeof console !== "undefined") console.log(`[diag-fallback] ${msg}`);
-  } catch {
-    /* noop */
-  }
-}
+import { safeLog } from "../lib/diagnostics";
 
 type AuthState = {
   user: User | null;

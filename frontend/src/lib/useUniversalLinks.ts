@@ -1,7 +1,7 @@
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useEffect, useRef } from "react";
-import { diag } from "@/src/lib/diagnostics";
+import { safeLog } from "./diagnostics";
 
 /**
  * Map of Universal-Link hostnames → in-shell app slug.
@@ -61,10 +61,10 @@ export function useUniversalLinks() {
       handled.current.add(url);
       const match = routeForUrl(url);
       if (!match) {
-        diag.log(`[deeplink] ignored (not a clar host): ${url}`);
+        safeLog(`[deeplink] ignored (not a clar host): ${url}`);
         return;
       }
-      diag.log(`[deeplink] ${url} → /(main)/app/${match.slug}?deeplink=${match.path}`);
+      safeLog(`[deeplink] ${url} → /(main)/app/${match.slug}?deeplink=${match.path}`);
       router.replace({
         pathname: "/(main)/app/[slug]",
         params: { slug: match.slug, deeplink: match.path },
@@ -74,7 +74,7 @@ export function useUniversalLinks() {
     // Cold start
     Linking.getInitialURL()
       .then((u) => handle(u))
-      .catch((e) => diag.log(`[deeplink] getInitialURL failed: ${String(e)}`));
+      .catch((e) => safeLog(`[deeplink] getInitialURL failed: ${String(e)}`));
 
     // Hot URLs (foreground)
     const sub = Linking.addEventListener("url", (event) => handle(event.url));
