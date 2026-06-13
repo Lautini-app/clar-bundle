@@ -12,7 +12,6 @@ import { rcLogin, rcLogout } from "../lib/revenuecat";
  */
 function safeLog(msg: string): void {
   try {
-    // eslint-disable-next-line no-console
     if (typeof console !== "undefined") console.log(`[auth] ${msg}`);
   } catch {
     /* noop — never let logging break auth */

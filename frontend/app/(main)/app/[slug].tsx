@@ -18,14 +18,12 @@ import { colors, spacing, radius } from "@/src/theme";
 const diag = {
   log(msg: string): void {
     try {
-      // eslint-disable-next-line no-console
       if (typeof console !== "undefined") console.log(`[webview] ${msg}`);
     } catch {
       /* noop */
     }
   },
 };
-const safeLog = (msg: string) => diag.log(msg);
 
 const SUPABASE_ACCESS_KEY = "clar.supabase.access_token";
 const SUPABASE_REFRESH_KEY = "clar.supabase.refresh_token";
