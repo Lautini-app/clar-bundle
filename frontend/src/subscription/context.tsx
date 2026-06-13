@@ -39,12 +39,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setRcEntitlements(null);
       return;
     }
-    // Pull both sources of truth in parallel.
-    const [backendStatus, rcSnap] = await Promise.all([
+    // Pull local shell state and RevenueCat entitlements in parallel.
+    const [localStatus, rcSnap] = await Promise.all([
       api.subscriptionStatus().catch(() => null),
       rcGetEntitlements().catch(() => null),
     ]);
-    setStatus(backendStatus);
+    setStatus(localStatus);
     if (rcSnap) setRcEntitlements(rcSnap);
   }, [isAuthed]);
 
@@ -64,7 +64,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
    *      → "clar.app" entitlement unlocks everything
    *      → "heim" entitlement unlocks clar·heim
    *      → "markt" entitlement unlocks clar·markt
-   *   2. Backend mirror (fallback for Web/Expo Go preview, and for tracking
+   *   2. Local shell mirror (fallback for Web/Expo Go preview, and for tracking
    *      which app the user picked in a 1-app subscription).
    */
   const hasEntitlement = useCallback(
@@ -118,7 +118,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         }
       }
 
-      // Backend mirror — also tracks the chosen app_slug for single-plan users
+      // Local mirror — also tracks the chosen app_slug for single-plan users
       // (since RC alone may grant "clar.app" without saying which app the user picked).
       const s = await api.purchase(plan, period, plan === "single" ? appSlug : undefined);
       setStatus(s);
@@ -132,7 +132,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (!snap) return;
     setRcEntitlements(snap);
 
-    // Mirror restored entitlements to backend so apps_unlocked stays in sync.
+    // Mirror restored entitlements locally so apps_unlocked stays in sync.
     const apps = snapshotAppsUnlocked(snap);
     if (apps.length === 2 || snap.clarApp) {
       const s = await api.purchase("bundle", "yearly").catch(() => null);
