@@ -66,9 +66,9 @@ export default function Settings() {
           {status?.plan ? (
             <>
               <Row label="Plan" value={status.plan === "bundle" ? "Bundle" : "Einzel"} />
-              <Row label="Zeitraum" value={status.billing_period === "yearly" ? "Jährlich" : "Monatlich"} />
-              <Row label="Preis" value={`CHF ${status.price_chf}`} />
-              <Row label="Apps" value={status.apps_unlocked.join(", ")} />
+              <Row label="Zeitraum" value={status.billing_period ? (status.billing_period === "yearly" ? "Jährlich" : "Monatlich") : "—"} />
+              <Row label="Preis" value={status.price_chf === null ? "—" : `CHF ${status.price_chf}`} />
+              <Row label="Apps" value={status.apps_unlocked.length ? status.apps_unlocked.join(", ") : "—"} />
               <Pressable testID="cancel-subscription" onPress={handleCancel} style={styles.dangerBtn}>
                 <Text style={styles.dangerText}>
                   {Platform.OS === "ios" ? "Abo verwalten in iOS-Einstellungen" : "Abo kündigen"}
@@ -116,8 +116,8 @@ function formatTs(ts: number): string {
 
 function Diagnostics() {
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<Array<{ label: string; value: string; ok: boolean }>>([]);
-  const [logs, setLogs] = useState<Array<{ ts: number; msg: string }>>([]);
+  const [items, setItems] = useState<{ label: string; value: string; ok: boolean }[]>([]);
+  const [logs, setLogs] = useState<{ ts: number; msg: string }[]>([]);
   const [copyHint, setCopyHint] = useState<string | null>(null);
   const [authErr, setAuthErr] = useState<string | null>(null);
 
@@ -162,7 +162,7 @@ function Diagnostics() {
         <View testID="diagnostics-list" style={styles.diagBody}>
           {items.map((it) => (
             <View key={it.label} style={styles.diagRow}>
-              <View style={styles.diagDot(it.ok)} />
+              <View style={[styles.diagDot, { backgroundColor: it.ok ? colors.success : colors.danger }]} />
               <Text style={styles.diagLabel}>{it.label}</Text>
               <Text style={styles.diagValue}>{it.value}</Text>
             </View>
@@ -170,7 +170,7 @@ function Diagnostics() {
           <Text style={styles.diagHint}>
             Erwartet im TestFlight nach Kauf: RevenueCat aktiv = ja, und
             mindestens eines der drei Entitlements (heim / markt / clar.app)
-            sollte "aktiv" zeigen.
+            sollte &quot;aktiv&quot; zeigen.
           </Text>
 
           <View style={styles.diagLogsHeader}>
@@ -189,7 +189,7 @@ function Diagnostics() {
           {logs.length === 0 ? (
             <Text style={styles.diagLogsEmpty}>
               Noch keine Logs. Öffne eine App-Kachel — die WebView-Overlay-Logik
-              schreibt hierher z. B. "overlay hide via clar_ready (340ms)".
+              schreibt hierher z. B. &quot;overlay hide via clar_ready (340ms)&quot;.
             </Text>
           ) : (
             <ScrollView
@@ -255,10 +255,7 @@ const styles = StyleSheet.create({
   diagHeaderText: { fontSize: 12, fontWeight: "700", color: colors.inkSoft, letterSpacing: 0.5, textTransform: "uppercase" },
   diagBody: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.sm, gap: 6 },
   diagRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  diagDot: (ok: boolean) => ({
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: ok ? colors.success : colors.danger,
-  }),
+  diagDot: { width: 8, height: 8, borderRadius: 4 },
   diagLabel: { fontSize: 12, color: colors.inkSoft, flex: 1 },
   diagValue: { fontSize: 12, color: colors.ink, fontWeight: "600", maxWidth: "55%", textAlign: "right" },
   diagHint: { fontSize: 10, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 14 },

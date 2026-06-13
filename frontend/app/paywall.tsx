@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { api, ClarApp } from "@/src/api/client";
+import { getAppBySlug } from "@/src/api/apps";
 import { useSubscription } from "@/src/subscription/context";
 import { isRevenueCatAvailable, isNativeBuild } from "@/src/lib/revenuecat";
 import { colors, spacing, radius } from "@/src/theme";
@@ -19,15 +19,11 @@ export default function Paywall() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const { purchase } = useSubscription();
-  const [app, setApp] = useState<ClarApp | null>(null);
+  const app = useMemo(() => getAppBySlug(slug), [slug]);
   const [plan, setPlan] = useState<"single" | "bundle">("bundle");
   const [period, setPeriod] = useState<"monthly" | "yearly">("yearly");
   const [buying, setBuying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.listApps().then((apps) => setApp(apps.find((a) => a.slug === slug) ?? null));
-  }, [slug]);
 
   // Decide which note to show under the buy button:
   // - Real Apple IAP via RevenueCat available → official IAP disclosure

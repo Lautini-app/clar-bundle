@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { api, ClarApp } from "@/src/api/client";
+import { getAppBySlug } from "@/src/api/apps";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
 
@@ -18,14 +18,12 @@ import { colors, spacing, radius } from "@/src/theme";
 const diag = {
   log(msg: string): void {
     try {
-      // eslint-disable-next-line no-console
       if (typeof console !== "undefined") console.log(`[webview] ${msg}`);
     } catch {
       /* noop */
     }
   },
 };
-const safeLog = (msg: string) => diag.log(msg);
 
 const SUPABASE_ACCESS_KEY = "clar.supabase.access_token";
 const SUPABASE_REFRESH_KEY = "clar.supabase.refresh_token";
@@ -123,7 +121,7 @@ export default function AppWebView() {
   const { slug, deeplink } = useLocalSearchParams<{ slug: string; deeplink?: string }>();
   const router = useRouter();
   const { hasEntitlement } = useSubscription();
-  const [app, setApp] = useState<ClarApp | null>(null);
+  const app = useMemo(() => getAppBySlug(slug), [slug]);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,12 +148,10 @@ export default function AppWebView() {
   useEffect(() => {
     (async () => {
       try {
-        const [apps, at, rt] = await Promise.all([
-          api.listApps(),
+        const [at, rt] = await Promise.all([
           AsyncStorage.getItem(SUPABASE_ACCESS_KEY),
           AsyncStorage.getItem(SUPABASE_REFRESH_KEY),
         ]);
-        setApp(apps.find((a) => a.slug === slug) ?? null);
         setAccessToken(at);
         setRefreshToken(rt);
       } finally {
@@ -163,7 +159,7 @@ export default function AppWebView() {
       }
     })();
     return () => { clearTimers(); };
-  }, [slug, clearTimers]);
+  }, [clearTimers]);
 
   /**
    * iOS-Crash-Workaround: WKWebView ruft `navigator.mediaDevices.getUserMedia`

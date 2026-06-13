@@ -1,7 +1,7 @@
 # clar by lautini — PRD
 
 ## Übersicht
-Native iOS Shell-App für den App Store, gebaut mit Expo (React Native) + FastAPI/MongoDB. Erweiterbarer App-Hub: neue clar·Apps werden über die Backend-Konfiguration (`/api/apps`) hinzugefügt — ohne App Store Update.
+Native iOS Shell-App für den App Store, gebaut mit Expo (React Native), Supabase Auth und RevenueCat. Die App-Liste liegt statisch im Frontend unter `frontend/src/api/apps.ts`.
 
 ## Aktueller Status — Phasen A, B, C komplett (Code-seitig)
 
@@ -16,8 +16,7 @@ Native iOS Shell-App für den App Store, gebaut mit Expo (React Native) + FastAP
 ### ✅ Phase B — Apple Sign-In via Supabase
 - `expo-apple-authentication` + `@supabase/supabase-js` integriert
 - `src/lib/supabase.ts` + Session-Persistenz in AsyncStorage
-- Native iOS: `AppleAuthentication.signInAsync` → `supabase.auth.signInWithIdToken({provider:'apple'})` → Shell-Backend mint Shell-JWT
-- Backend `/api/auth/apple` verifiziert Supabase access_token gegen `/auth/v1/user`
+- Native iOS: `AppleAuthentication.signInAsync` → `supabase.auth.signInWithIdToken({provider:'apple'})`
 - Supabase Session Tokens werden gecached für SSO-Handoff an WebViews
 - Apple-Konfig: Bundle ID `ch.lautini.clar`, Team ID `BP3882583C`, Services ID `ch.lautini.clar.signin`
 
@@ -28,7 +27,7 @@ Native iOS Shell-App für den App Store, gebaut mit Expo (React Native) + FastAP
 - "Käufe wiederherstellen" Button in Settings (App Store Pflicht)
 - `Purchases.logIn(user_id)` an Supabase-User gebunden
 - Diagnose-Sektion in Settings zeigt Live-Status (Build-Typ, RC-Status, Entitlements)
-- Web-Preview-Fallback: Backend-Mock-Purchase funktioniert weiterhin
+- Web-Preview-Fallback: lokaler AsyncStorage-Mock ohne Backend
 
 ## Was vor App Store Submit zu tun ist (User-Tasks)
 
@@ -54,7 +53,7 @@ Native iOS Shell-App für den App Store, gebaut mit Expo (React Native) + FastAP
 3. App Store Connect Shared Secret hochladen
 4. **2 Entitlements:** `single_app`, `bundle`
 5. **Offering `default`** mit 4 Packages → mit Apple-IAP-IDs verknüpfen
-6. Webhook URL (optional): Shell-Backend für Server-Side-Validation
+6. Webhook URL optional, falls später wieder Server-Side-Validation benötigt wird
 
 ### D. Web-Apps (separate Emergent-Projekte)
 - `clar.heim`: SSO_CONTRACT.md implementieren — `isEmbedded`-Check teilweise vorhanden, vervollständigen
@@ -66,19 +65,13 @@ Native iOS Shell-App für den App Store, gebaut mit Expo (React Native) + FastAP
 - Test mit Sandbox Apple ID
 - App Store Review submission
 
-## Backend-Endpunkte
-- `GET /api/apps` — Katalog (öffentlich)
-- `POST /api/auth/apple` — Sign in via Supabase token verification
-- `GET /api/auth/me`
-- `POST /api/user/selected-apps` (legacy, nicht mehr verwendet)
-- `GET /api/subscription/status`
-- `POST /api/subscription/purchase` (records purchase nach RC success)
-- `POST /api/subscription/cancel`
-- `GET /api/sso/token` — Shell-JWT für legacy postMessage
+## Frontend App-Katalog
+- `frontend/src/api/apps.ts` — statischer Katalog für Home, Paywall und WebView-Routing
+- Keine Shell-Backend- oder `/api/*`-Aufrufe mehr im Frontend
 
 ## Erweiterbarkeit
-Neue App hinzufügen: Eintrag in `APPS_CATALOG` in `/app/backend/server.py` setzen mit `available: true`. Erscheint automatisch in Onboarding und Home. Bundle-Preis bleibt konstant.
+Neue App hinzufügen: Eintrag in `CLAR_APPS` in `frontend/src/api/apps.ts` setzen mit `available: true`. Erscheint automatisch in Home, Paywall und WebView-Routing. Bundle-Preis bleibt konstant.
 
 ## MOCK Hinweise
-- **Web-Preview / Expo Go**: Apple Sign-In = MOCK, RevenueCat = MOCK (Backend-Bypass), SSO-Tokens = leer
+- **Web-Preview / Expo Go**: Apple Sign-In = MOCK, RevenueCat = lokaler Preview-Status, SSO-Tokens = leer
 - **Nativer iOS-Build**: alles real
