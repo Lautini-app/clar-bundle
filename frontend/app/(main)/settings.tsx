@@ -66,9 +66,9 @@ export default function Settings() {
           {status?.plan ? (
             <>
               <Row label="Plan" value={status.plan === "bundle" ? "Bundle" : "Einzel"} />
-              <Row label="Zeitraum" value={status.billing_period === "yearly" ? "Jährlich" : "Monatlich"} />
-              <Row label="Preis" value={`CHF ${status.price_chf}`} />
-              <Row label="Apps" value={status.apps_unlocked.join(", ")} />
+              <Row label="Zeitraum" value={status.billing_period ? (status.billing_period === "yearly" ? "Jährlich" : "Monatlich") : "—"} />
+              <Row label="Preis" value={status.price_chf === null ? "—" : `CHF ${status.price_chf}`} />
+              <Row label="Apps" value={status.apps_unlocked.length ? status.apps_unlocked.join(", ") : "—"} />
               <Pressable testID="cancel-subscription" onPress={handleCancel} style={styles.dangerBtn}>
                 <Text style={styles.dangerText}>
                   {Platform.OS === "ios" ? "Abo verwalten in iOS-Einstellungen" : "Abo kündigen"}

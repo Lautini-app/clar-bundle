@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { api, SubscriptionStatus } from "../api/client";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AVAILABLE_APP_SLUGS } from "../api/apps";
 import { useAuth } from "../auth/context";
 import {
+  PRODUCT_IDS,
   purchaseProduct,
   productIdFor,
   restorePurchases as rcRestore,
@@ -12,6 +14,15 @@ import {
   snapshotAppsUnlocked,
   RcEntitlementSnapshot,
 } from "../lib/revenuecat";
+
+export type SubscriptionStatus = {
+  plan: "single" | "bundle" | null;
+  entitlement: "single_app" | "bundle" | null;
+  apps_unlocked: string[];
+  billing_period: "monthly" | "yearly" | null;
+  price_chf: number | null;
+  expires_at: string | null;
+};
 
 type SubState = {
   status: SubscriptionStatus | null;
@@ -27,11 +38,94 @@ type SubState = {
 
 const SubContext = createContext<SubState | undefined>(undefined);
 
+const PREVIEW_STATUS_KEY = "clar.subscription.preview_status";
+const REVIEWER_EMAIL = (process.env.EXPO_PUBLIC_REVIEWER_EMAIL ?? "appstore.reviewer@lautini.ch").toLowerCase();
+
+const PRICES = {
+  "single-monthly": 4,
+  "single-yearly": 30,
+  "bundle-monthly": 6,
+  "bundle-yearly": 50,
+} as const;
+
+function reviewerStatus(): SubscriptionStatus {
+  return {
+    plan: "bundle",
+    entitlement: "bundle",
+    apps_unlocked: AVAILABLE_APP_SLUGS,
+    billing_period: null,
+    price_chf: 0,
+    expires_at: null,
+  };
+}
+
+function productMeta(productId: string | null): Pick<SubscriptionStatus, "plan" | "billing_period" | "price_chf"> | null {
+  switch (productId) {
+    case PRODUCT_IDS.single_monthly:
+      return { plan: "single", billing_period: "monthly", price_chf: PRICES["single-monthly"] };
+    case PRODUCT_IDS.single_yearly:
+      return { plan: "single", billing_period: "yearly", price_chf: PRICES["single-yearly"] };
+    case PRODUCT_IDS.bundle_monthly:
+      return { plan: "bundle", billing_period: "monthly", price_chf: PRICES["bundle-monthly"] };
+    case PRODUCT_IDS.bundle_yearly:
+      return { plan: "bundle", billing_period: "yearly", price_chf: PRICES["bundle-yearly"] };
+    default:
+      return null;
+  }
+}
+
+function statusFromSnapshot(snap: RcEntitlementSnapshot | null): SubscriptionStatus | null {
+  const apps = snapshotAppsUnlocked(snap);
+  if (!snap || apps.length === 0) return null;
+
+  const meta = productMeta(snap.activeProductId);
+  const isBundle = snapshotIsBundle(snap) || apps.length >= 2;
+  return {
+    plan: meta?.plan ?? (isBundle ? "bundle" : "single"),
+    entitlement: isBundle ? "bundle" : "single_app",
+    apps_unlocked: apps,
+    billing_period: meta?.billing_period ?? null,
+    price_chf: meta?.price_chf ?? null,
+    expires_at: null,
+  };
+}
+
+function previewStatus(plan: "single" | "bundle", period: "monthly" | "yearly", appSlug?: string): SubscriptionStatus {
+  const apps = plan === "bundle" ? AVAILABLE_APP_SLUGS : appSlug ? [appSlug] : [];
+  return {
+    plan,
+    entitlement: plan === "bundle" ? "bundle" : "single_app",
+    apps_unlocked: apps,
+    billing_period: period,
+    price_chf: PRICES[`${plan}-${period}`],
+    expires_at: null,
+  };
+}
+
+async function readPreviewStatus(): Promise<SubscriptionStatus | null> {
+  try {
+    const raw = await AsyncStorage.getItem(PREVIEW_STATUS_KEY);
+    return raw ? (JSON.parse(raw) as SubscriptionStatus) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writePreviewStatus(status: SubscriptionStatus | null) {
+  if (status) {
+    await AsyncStorage.setItem(PREVIEW_STATUS_KEY, JSON.stringify(status));
+  } else {
+    await AsyncStorage.removeItem(PREVIEW_STATUS_KEY);
+  }
+}
+
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthed } = useAuth();
+  const { isAuthed, user } = useAuth();
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [rcEntitlements, setRcEntitlements] = useState<RcEntitlementSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const isReviewer = user?.email?.toLowerCase() === REVIEWER_EMAIL;
 
   const refresh = useCallback(async () => {
     if (!isAuthed) {
@@ -39,14 +133,22 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setRcEntitlements(null);
       return;
     }
-    // Pull both sources of truth in parallel.
-    const [backendStatus, rcSnap] = await Promise.all([
-      api.subscriptionStatus().catch(() => null),
-      rcGetEntitlements().catch(() => null),
-    ]);
-    setStatus(backendStatus);
-    if (rcSnap) setRcEntitlements(rcSnap);
-  }, [isAuthed]);
+    if (isReviewer) {
+      setStatus(reviewerStatus());
+      setRcEntitlements(null);
+      return;
+    }
+
+    const rcSnap = await rcGetEntitlements().catch(() => null);
+    if (rcSnap) {
+      setRcEntitlements(rcSnap);
+      setStatus(statusFromSnapshot(rcSnap));
+      return;
+    }
+
+    setRcEntitlements(null);
+    setStatus(await readPreviewStatus());
+  }, [isAuthed, isReviewer]);
 
   useEffect(() => {
     (async () => {
@@ -64,18 +166,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
    *      → "clar.app" entitlement unlocks everything
    *      → "heim" entitlement unlocks clar·heim
    *      → "markt" entitlement unlocks clar·markt
-   *   2. Backend mirror (fallback for Web/Expo Go preview, and for tracking
-   *      which app the user picked in a 1-app subscription).
+   *   2. Local preview state (Web/Expo Go only, no backend).
    */
   const hasEntitlement = useCallback(
     (slug: string) => {
+      if (isReviewer && AVAILABLE_APP_SLUGS.includes(slug)) return true;
       if (snapshotUnlocksApp(rcEntitlements, slug)) return true;
       return !!status?.apps_unlocked?.includes(slug);
     },
-    [rcEntitlements, status]
+    [isReviewer, rcEntitlements, status]
   );
 
   const hasBundle =
+    isReviewer ||
     snapshotIsBundle(rcEntitlements) ||
     status?.entitlement === "bundle" ||
     (status?.apps_unlocked ?? []).length >= 2;
@@ -97,6 +200,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
         // Persist the live entitlement snapshot so the UI updates immediately.
         setRcEntitlements(outcome.entitlements);
+        setStatus(statusFromSnapshot(outcome.entitlements));
 
         // Verify the right entitlement actually got granted.
         const e = outcome.entitlements;
@@ -116,11 +220,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             );
           }
         }
+        return;
       }
 
-      // Backend mirror — also tracks the chosen app_slug for single-plan users
-      // (since RC alone may grant "clar.app" without saying which app the user picked).
-      const s = await api.purchase(plan, period, plan === "single" ? appSlug : undefined);
+      const s = previewStatus(plan, period, plan === "single" ? appSlug : undefined);
+      await writePreviewStatus(s);
       setStatus(s);
     },
     []
@@ -131,22 +235,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const snap = await rcRestore();
     if (!snap) return;
     setRcEntitlements(snap);
-
-    // Mirror restored entitlements to backend so apps_unlocked stays in sync.
-    const apps = snapshotAppsUnlocked(snap);
-    if (apps.length === 2 || snap.clarApp) {
-      const s = await api.purchase("bundle", "yearly").catch(() => null);
-      if (s) setStatus(s);
-    } else if (apps.length === 1) {
-      const s = await api.purchase("single", "yearly", apps[0]).catch(() => null);
-      if (s) setStatus(s);
-    }
+    setStatus(statusFromSnapshot(snap));
   }, []);
 
   const cancel = useCallback(async () => {
-    // Apple subscriptions can only be cancelled in iOS Settings.
-    // We just clear our local mirror so the UI reflects the state immediately.
-    await api.cancel();
+    // Apple subscriptions can only be cancelled in iOS Settings. For preview
+    // mode this clears the local simulated status.
+    await writePreviewStatus(null);
     setStatus(null);
     setRcEntitlements(null);
   }, []);

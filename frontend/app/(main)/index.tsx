@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { api, ClarApp } from "@/src/api/client";
+import { CLAR_APPS, ClarApp } from "@/src/api/apps";
 import { useAuth } from "@/src/auth/context";
 import { useSubscription } from "@/src/subscription/context";
 import { colors, spacing, radius } from "@/src/theme";
@@ -13,16 +12,10 @@ export default function MainHome() {
   const router = useRouter();
   const { user } = useAuth();
   const { status, hasEntitlement, hasBundle } = useSubscription();
-  const [apps, setApps] = useState<ClarApp[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.listApps().then((a) => { setApps(a); setLoading(false); });
-  }, []);
-
-  const active = apps.filter((a) => a.available && hasEntitlement(a.slug));
-  const available = apps.filter((a) => a.available && !hasEntitlement(a.slug));
-  const upcoming = apps.filter((a) => !a.available);
+  const active = CLAR_APPS.filter((a) => a.available && hasEntitlement(a.slug));
+  const available = CLAR_APPS.filter((a) => a.available && !hasEntitlement(a.slug));
+  const upcoming = CLAR_APPS.filter((a) => !a.available);
 
   const openApp = (app: ClarApp) => {
     if (hasEntitlement(app.slug)) {
@@ -44,49 +37,45 @@ export default function MainHome() {
         </Pressable>
       </View>
 
-      {loading ? (
-        <ActivityIndicator color={colors.brand} style={{ marginTop: spacing.xl }} />
-      ) : (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {status?.plan && (
-            <View style={styles.planChip} testID="active-plan-chip">
-              <Ionicons name="sparkles" size={14} color={colors.brand} />
-              <Text style={styles.planChipText}>
-                {hasBundle ? "Bundle aktiv" : "Einzel-Abo"} · {status.billing_period === "yearly" ? "jährlich" : "monatlich"}
-              </Text>
-            </View>
-          )}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {status?.plan && (
+          <View style={styles.planChip} testID="active-plan-chip">
+            <Ionicons name="sparkles" size={14} color={colors.brand} />
+            <Text style={styles.planChipText}>
+              {hasBundle ? "Bundle aktiv" : "Einzel-Abo"} · {status.billing_period === "yearly" ? "jährlich" : "monatlich"}
+            </Text>
+          </View>
+        )}
 
-          {active.length > 0 && (
-            <>
-              <Text style={styles.section}>Aktiv</Text>
-              {active.map((app) => (
-                <Tile key={app.slug} app={app} state="active" onPress={() => openApp(app)} />
-              ))}
-            </>
-          )}
+        {active.length > 0 && (
+          <>
+            <Text style={styles.section}>Aktiv</Text>
+            {active.map((app) => (
+              <Tile key={app.slug} app={app} state="active" onPress={() => openApp(app)} />
+            ))}
+          </>
+        )}
 
-          {available.length > 0 && (
-            <>
-              <Text style={styles.section}>{active.length > 0 ? "Verfügbar" : "Wähle deine App"}</Text>
-              {available.map((app) => (
-                <Tile key={app.slug} app={app} state="locked" onPress={() => openApp(app)} />
-              ))}
-            </>
-          )}
+        {available.length > 0 && (
+          <>
+            <Text style={styles.section}>{active.length > 0 ? "Verfügbar" : "Wähle deine App"}</Text>
+            {available.map((app) => (
+              <Tile key={app.slug} app={app} state="locked" onPress={() => openApp(app)} />
+            ))}
+          </>
+        )}
 
-          {upcoming.length > 0 && (
-            <>
-              <Text style={styles.section}>Demnächst</Text>
-              {upcoming.map((app) => (
-                <Tile key={app.slug} app={app} state="upcoming" />
-              ))}
-            </>
-          )}
+        {upcoming.length > 0 && (
+          <>
+            <Text style={styles.section}>Demnächst</Text>
+            {upcoming.map((app) => (
+              <Tile key={app.slug} app={app} state="upcoming" />
+            ))}
+          </>
+        )}
 
-          <View style={{ height: spacing.xxl }} />
-        </ScrollView>
-      )}
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
