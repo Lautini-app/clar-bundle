@@ -14,7 +14,6 @@ import { rcLogin, rcLogout } from "../lib/revenuecat";
  */
 function safeLog(msg: string): void {
   try {
-    // eslint-disable-next-line no-console
     if (typeof console !== "undefined") console.log(`[auth] ${msg}`);
   } catch {
     /* noop — never let logging break auth */
@@ -172,11 +171,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       appleUserId = mockId;
       email = mockEmail;
       fullName = "Apple User";
-      // For Web preview we don't actually hit Supabase. Skip — backend creates user.
+      // For Web preview we don't actually hit Supabase. The shell session is local.
       supabaseAccessToken = "";
     }
 
-    // Tell Shell-Backend → mints Shell-JWT for /api/subscription/* etc.
+    // Create the shell session locally; no backend exchange is needed after Supabase.
     const res = await api.signInWithApple({
       apple_user_id: appleUserId,
       email,
@@ -222,11 +221,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Hidden reviewer login (App Store Review Notes: tap "clar" logo 5× to reveal).
-   * Uses Supabase email/password sign-in, then exchanges the Supabase token
-   * with the shell backend — same flow as Apple, just a different identity
-   * provider. The backend auto-grants all entitlements for the reviewer email
-   * (see _is_reviewer in server.py), so the reviewer never needs to make an
-   * IAP purchase to test the embedded clar·apps.
+   * Uses Supabase email/password sign-in, then creates the same local shell
+   * session as Apple. The local API auto-grants all entitlements for the
+   * reviewer email, so App Review can test the embedded clar·apps without IAP.
    */
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     const trimmed = email.trim().toLowerCase();
@@ -234,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (Platform.OS === "web") {
       // Web preview: Supabase may not be configured with valid keys; we just
-      // skip the Supabase round-trip and let the backend create a mock user.
+      // skip the Supabase round-trip and create a local mock user.
       const mockId = `mock_${trimmed}`;
       const res = await api.signInWithApple({
         apple_user_id: mockId,
