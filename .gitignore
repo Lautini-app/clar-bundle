@@ -76,6 +76,10 @@ agenthub/agents/youtube/db
 # Build caches
 .cache/
 
+# Local dev service data (MongoDB dbpath created by .cursor/install.sh)
+.mongo-data/
+.mongo-log/
+
 memory/test_credentials.md
 
 # Mobile development

@@ -1,0 +1,27 @@
+{
+  "name": "clar — Expo web + FastAPI + MongoDB",
+  "install": "bash ./.cursor/install.sh",
+  "chromeExecutablePath": "/usr/bin/google-chrome-stable",
+  "terminals": [
+    {
+      "name": "mongod",
+      "description": "MongoDB server backing the FastAPI API (data in /workspace/.mongo-data).",
+      "command": "mkdir -p /workspace/.mongo-data && exec mongod --dbpath /workspace/.mongo-data --bind_ip 127.0.0.1 --port 27017"
+    },
+    {
+      "name": "backend",
+      "description": "FastAPI backend (clar API) served by uvicorn on port 8001.",
+      "command": "cd /workspace/backend && . .venv/bin/activate && exec uvicorn server:app --host 0.0.0.0 --port 8001 --reload"
+    },
+    {
+      "name": "expo-web",
+      "description": "Expo (React Native web) dev server for the clar app on port 8081.",
+      "command": "cd /workspace/frontend && exec yarn expo start --web --port 8081"
+    }
+  ],
+  "ports": [
+    { "name": "expo-web", "port": 8081 },
+    { "name": "backend-api", "port": 8001 },
+    { "name": "mongodb", "port": 27017 }
+  ]
+}
