@@ -403,6 +403,25 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div id="steps-mischbrot"></div>
 </div>
 
+<!-- HELLES SAUERTEIGBROT -->
+<div class="page" id="page-helles">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="helFlourVal">500<small>g</small></span></div><input type="range" id="helFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('helles')"></div>
+    <div class="rc-sub" style="margin-top:0.2rem">Weizensauerteig ohne Hefe, 75 % Hydration. Abends ansetzen, am Folgetag oder über Nacht im Kühlschrank backen.</div>
+  </div>
+  <div class="section-label">Backgefäss</div>
+  <div class="vessel-chooser">
+    <button class="vessel-btn active" data-v="topf" onclick="setVessel('helles','topf',this)"><span class="vb-icon">🫕</span><div class="vb-name">Gusseisentopf</div><div class="vb-sub">Beste Kruste</div></button>
+    <button class="vessel-btn" data-v="kasten" onclick="setVessel('helles','kasten',this)"><span class="vb-icon">🍞</span><div class="vb-name">Kastenform</div><div class="vb-sub">Klassisch</div></button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-helles" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-helles-txt">Schritt 1 von 8</span><span class="prog-recipe">Helles Sauerteigbrot</span></div>
+  </div>
+  <div id="steps-helles"></div>
+</div>
+
 <!-- LAUGENGEBÄCK -->
 <div class="page" id="page-laugen">
   <div class="section-label">Mehlmenge</div>
@@ -427,10 +446,10 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
 
 <script>
 const timers={};
-const stepState={roggen:0,weizen:0,zopf:0,ciabatta:0,mischbrot:0,laugen:0};
+const stepState={roggen:0,weizen:0,zopf:0,ciabatta:0,mischbrot:0,laugen:0,helles:0};
 
 function formatTime(s){const m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0');}
-const vesselState={roggen:'topf',weizen:'topf',laugen:'brezel'};
+const vesselState={roggen:'topf',weizen:'topf',laugen:'brezel',helles:'topf'};
 
 // INFO STRUCTURE: {warum, temp, exp, acht}
 // warum=Hintergrund, temp=Temperatur/Zeit erklärt, exp=Experimentieren, acht=Achtung
@@ -635,9 +654,9 @@ const RECIPES={
   }
 };
 
-const recipeFlour={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500};
+const recipeFlour={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500,helles:500};
 
-const FLOUR_ID_PREFIX={roggen:'rog',weizen:'wei',zopf:'zopf',mischbrot:'mis',laugen:'lau'};
+const FLOUR_ID_PREFIX={roggen:'rog',weizen:'wei',zopf:'zopf',mischbrot:'mis',laugen:'lau',helles:'hel'};
 let recipeRenderTimer={};
 function onRecipeFlour(key){
   const prefix=FLOUR_ID_PREFIX[key];
@@ -786,7 +805,7 @@ function renderRecipe(key){
   container.innerHTML='';
   const total=recipe.steps.length;
   // Scaling factor vs base 500g for roggen/weizen/zopf; ciabatta manages its own
-  const BASE={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500};
+  const BASE={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500,helles:500};
   const factor=(recipeFlour[key]&&BASE[key])?recipeFlour[key]/BASE[key]:1;
   recipe.steps.forEach((step,i)=>{
     const isDone=i<stepState[key],isActive=i===stepState[key];
@@ -1066,6 +1085,72 @@ function calcCiabatta(){
   renderRecipe('ciabatta');
 }
 
+// ── HELLES SAUERTEIGBROT (Weizen, ohne Hefe) ────────────────
+RECIPES.helles={
+  name:'Helles Sauerteigbrot',
+  steps:[
+    {
+      title:'Sauerteig ansetzen', time:'Abend — 5 min',
+      desc:'Anstellgut im Wasser auflösen, Mehl einrühren, abdecken. Bei ca. 24°C 8–12 Stunden reifen lassen, am besten über Nacht. Er ist bereit, wenn er sich etwa verdoppelt hat, gewölbt ist und viele Blasen zeigt.',
+      ings:[
+        {a:'15 g',n:'Anstellgut',note:'Aktiver Weizen- oder Roggensauer'},
+        {a:'75 g',n:'Weizenmehl 550 (CH: Weissmehl)',note:'15% des Gesamtmehls'},
+        {a:'75 g',n:'Wasser, 30°C',note:'Gleich viel wie Mehl'}
+      ],
+      info:{warum:'Ein Brot ohne Hefe lebt allein vom Sauerteig. Darum braucht er genug Kraft: 15% des Mehls werden vorab vergoren. Das gibt Trieb und mildes Aroma.',temp:'24°C: 8–10 h. Kühler (20°C): 12–14 h. Wärmer als 28°C wird der Sauerteig zu sauer und verliert Triebkraft.',exp:'Mehr Anstellgut (30 g) verkürzt die Reifung auf 6–8 h. Mit etwas Vollkornmehl (20 g von den 75 g) wird das Aroma kräftiger.',acht:'Kommt dein Anstellgut direkt aus dem Kühlschrank und ist träge, zuerst 1–2 Mal auffrischen, sonst geht das Brot kaum auf. Ein Sauerteig, der schon eingefallen ist, ist über den Höhepunkt: dann lieber frisch ansetzen.'}
+    },
+    {
+      title:'Autolyse', time:'30–60 min', timerSec:1800,
+      desc:'Mehl und Wasser nur grob vermischen, bis kein trockenes Mehl mehr zu sehen ist. Abdecken und 30 Minuten ruhen lassen. Sauerteig und Salz kommen noch nicht dazu.',
+      ings:[
+        {a:'425 g',n:'Weizenmehl 550 (CH: Weissmehl)',note:'Restliches Mehl'},
+        {a:'300 g',n:'Wasser, 28°C',note:'Mit dem Sauerteig zusammen 75% Hydration'}
+      ],
+      info:{warum:'In der Ruhe quillt das Mehl und das Gluten baut sich von selbst auf. Der Teig wird dehnbarer und braucht danach weniger Kneten. Das ergibt eine hellere, feinere Krume.',temp:'30 min reichen. Bis zu 60 min geht auch, danach wird der Teig nicht besser.',exp:'Für ein noch weicheres, saftigeres Brot 20 g Wasser mehr zugeben (77%). Das braucht etwas Übung beim Formen.',acht:'Salz und Sauerteig nicht vorher zugeben. Salz bremst den Glutenaufbau in dieser Phase, der Sauerteig würde den Teig schon säuern.'}
+    },
+    {
+      title:'Teig kneten', time:'8–10 min', timerSec:540,
+      desc:'Sauerteig und Salz auf den Teig geben. 3 Minuten auf Stufe 1, dann 5–6 Minuten auf Stufe 2, bis der Teig glatt ist, sich vom Rand löst und den Fenstertest besteht: dünn ausziehbar, ohne zu reissen. Teigtemperatur 24–26°C.',
+      ings:[
+        {a:'alles',n:'Sauerteig aus Schritt 1',note:'Reif, gewölbt und blasig'},
+        {a:'10 g',n:'Salz',note:'2% von 500 g Mehl'}
+      ],
+      info:{warum:'Weizenteig braucht ein kräftiges Glutennetz, damit er die Gärgase hält. Ohne Hefe bildet sich das Gas langsamer, deshalb muss das Netz dicht und elastisch sein.',temp:'Zieltemperatur 24–26°C. Ist es wärmer, gärt der Teig zu schnell und wird sauer, kälteres Wasser nehmen.',exp:'Von Hand: 10 Minuten kneten, mit kurzen Pausen. Die Dehn- und Faltmethode im nächsten Schritt hilft zusätzlich.',acht:'Nicht zu lange kneten, sonst erhitzt sich der Teig. Er soll weich und leicht klebrig bleiben, nicht fest wie bei einem Hefebrot.'}
+    },
+    {
+      title:'Stockgare mit Falten', time:'4–5 Stunden', timerSec:16200,
+      desc:'Teig in eine geölte Schüssel geben, abdecken. In der ersten Stunde alle 30 Minuten dehnen und falten (3 Mal): Teig seitlich hochziehen und zur Mitte falten, Schüssel drehen, 4 Mal rundum. Danach ungestört bei 24°C weitergehen lassen, bis er um 50–60% gewachsen ist, nicht ganz verdoppelt. Oberfläche gewölbt, viele kleine Blasen.',
+      ings:[],
+      info:{warum:'Das Falten stärkt das Glutennetz sanft, ohne zu kneten. Die Säurebildung gibt Aroma und macht den Teig stabiler.',temp:'24°C: 4–5 h. 22°C: 5–6 h. 27°C: 3–4 h. Die Zeit hängt von der Kraft deines Sauerteigs ab. Nach dem Volumen richten, nicht nach der Uhr.',exp:'Wer das Brot saurer mag, lässt die Stockgare ca. 30 Minuten länger gehen oder lagert den Teig danach kalt.',acht:'Nicht bis zur vollen Verdopplung gehen lassen. Zu weit gegangener Teig fällt im Topf zusammen. Lieber etwas früher formen.'}
+    },
+    {
+      title:'Formen', time:'10 min',
+      desc:'Teig auf eine leicht bemehlte Fläche kippen. Sanft zu einem Rechteck dehnen, dann Seiten zur Mitte falten und zu einem straffen runden oder länglichen Laib aufrollen. Mit dem Schluss nach oben in ein gut bemehltes Gärkörbchen (oder eine mit Tuch ausgelegte Schüssel) legen.',
+      ings:[],
+      info:{warum:'Beim Formen entsteht Oberflächenspannung. Sie hilft dem Laib, im Ofen nach oben zu wachsen statt breit zu laufen.',temp:'Teig sollte Raumtemperatur haben. Ist er zu weich, kurz 15 Minuten ins Kühle stellen.',exp:'Reismehl zum Bemehlen des Körbchens verhindert zuverlässig das Ankleben.',acht:'Nicht zu viel Mehl einarbeiten, sonst entstehen Mehlstreifen in der Krume. Nicht entgasen, die Blasen sollen bleiben.'}
+    },
+    {
+      title:'Stückgare', time:'Kühlschrank 10–14 h',
+      desc:'Körbchen abdecken (Haube oder Tuch) und in den Kühlschrank stellen. Nach 10–14 Stunden kalt einschiessen und backen, ohne den Teig aufzuwärmen. Wer am gleichen Tag backen will: 1,5–2 Stunden bei Raumtemperatur reifen lassen, bis der Teig beim sanften Fingerdruck langsam zurückfedert.',
+      ings:[],
+      info:{warum:'Im Kühlschrank gärt der Teig langsam weiter und entwickelt viel Aroma. Kalte Teiglinge lassen sich leicht einschneiden und haben im Ofen mehr Trieb.',temp:'4°C: 10–14 h, bis zu 18 h möglich. Raumtemperatur 22°C: 1,5–2 h.',exp:'Je länger kalt, desto aromatischer und saurer. Zum Einstellen: ein Abend und ein Morgen backen ist ideal.',acht:'Beim Fingertest muss die Delle langsam zur Hälfte zurückkommen. Springt sie sofort zurück, ist der Teig noch jung. Bleibt sie ganz, ist er übergegangen.'}
+    },
+    {
+      title:'Einschneiden & Backen', time:'45–50 min', timerSec:2700,
+      desc_topf:'Topf mit Deckel im Ofen auf 250°C vorheizen, mindestens 30 Minuten. Teigling auf Backpapier stürzen, mit einem scharfen Messer 0,5 cm tief einschneiden. Mit dem Papier in den heissen Topf heben, Deckel drauf. 20 Minuten bei 250°C. Deckel ab, 210°C, weitere 25 Minuten bis goldbraun. Klopftest: hohl = fertig.',
+      desc_kasten:'Ofen auf 250°C vorheizen, ofenfeste Schale mit heissem Wasser auf den Boden stellen. Teigling kalt in die geölte Kastenform stürzen, längs einschneiden. 10 Minuten bei 250°C mit Dampf, Schale rausnehmen, 210°C und weitere 35–40 Minuten. Klopftest: hohl = fertig.',
+      ings:[],
+      info:{warum:'Die hohe Anfangshitze und der Dampf erzeugen den Ofentrieb und halten die Kruste elastisch. Danach backt die niedrigere Temperatur die Krume durch und gibt der Kruste Farbe.',temp:'250°C Start, dann 210°C. Kerntemperatur bei Weizensauerteig: 96–98°C. Für eine hellere Kruste auf 200°C stellen.',exp:'Ein paar Minuten länger bei offener Tür für eine knusprigere Kruste: Ofen ausschalten und 5 Minuten stehen lassen.',acht:'Ofen und Topf müssen wirklich durchgeheizt sein. Zu helle Kruste heisst meist nicht fertig: lieber 5 Minuten länger.'}
+    },
+    {
+      title:'Auskühlen', time:'1,5–2 Stunden', timerSec:5400,
+      desc:'Auf einem Rost vollständig auskühlen lassen. Erst dann anschneiden, sonst bleibt die Krume klebrig. Das Brot knistert beim Abkühlen. Das ist normal und ein gutes Zeichen.',
+      ings:[],
+      info:{warum:'Beim Auskühlen zieht die Feuchtigkeit aus der Mitte nach aussen und die Krume setzt sich. Warm angeschnitten wirkt sie noch gummiartig.',temp:'Mindestens 1,5 h. Das Brot hält sich dank Sauerteig 4–5 Tage frisch.',exp:'Am besten mit der Schnittfläche nach unten auf dem Brett oder in einem Leinentuch aufbewahren.',acht:'Nicht in Plastik einpacken, sonst wird die Kruste weich und das Brot schimmelt früher.'}
+    }
+  ]
+};
+
 // ── LAUGENGEBÄCK (Brezeln, Brötchen, Laugenbrot) ─────────────
 MATERIALS.laugen=[
   {icon:'⚖️',name:'Küchenwaage',opt:'Auch für die Lauge — auf 1 g genau'},
@@ -1174,6 +1259,7 @@ function updateLaugenInfo(){
 const CATALOG=[
   {group:'Sauerteigbrote',cat:'sauer',items:[
     {key:'roggen',ico:'🌾',title:'Roggenvollkornbrot',desc:'Saftig und kräftig, mit Quellstück',time:'ab 12 h vorher',level:'Mittel'},
+    {key:'helles',ico:'🥖',title:'Helles Sauerteigbrot',desc:'Weizensauerteig ohne Hefe, mild und fein',time:'Abend + Tag',level:'Mittel'},
     {key:'mischbrot',ico:'🍞',title:'Helles Roggenmischbrot 60/40',desc:'Mild, fluffig, hält lange frisch',time:'2 Tage',level:'Mittel'},
     {key:'ciabatta',ico:'🥖',title:'Sauerteig-Ciabatta',desc:'Luftig mit offener Porung, mit Poolish',time:'2 Abende + Morgen',level:'Mittel'}
   ]},
@@ -1218,7 +1304,7 @@ function openRecipe(key,form){
 }
 
 function initHome(){
-  ['roggen','weizen','zopf','ciabatta','mischbrot','laugen'].forEach(k=>{
+  ['roggen','helles','weizen','zopf','ciabatta','mischbrot','laugen'].forEach(k=>{
     const p=document.getElementById('page-'+k);
     if(p)p.insertAdjacentHTML('afterbegin','<button class="back-link" onclick="showPage(\'home\')">← Alle Rezepte</button>');
   });
@@ -1240,6 +1326,7 @@ renderRecipe('weizen');
 renderRecipe('zopf');
 renderRecipe('mischbrot');
 renderRecipe('laugen');
+renderRecipe('helles');
 calcCiabatta();
 initHome();
 
