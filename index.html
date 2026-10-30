@@ -409,6 +409,8 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div class="card">
     <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="helFlourVal">500<small>g</small></span></div><input type="range" id="helFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('helles')"></div>
     <div class="rc-sub" style="margin-top:0.2rem">Weizensauerteig ohne Hefe, 75 % Hydration. Abends ansetzen, am Folgetag oder über Nacht im Kühlschrank backen.</div>
+    <div class="sl-block" style="margin-top:0.9rem"><div class="sl-head"><span class="sl-name">Walnüsse (optional)</span><span class="sl-val" id="helNutsVal">keine</span></div><input type="range" id="helNuts" min="0" max="20" step="5" value="0" oninput="onHelAdd()"></div>
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Sonnenblumenkerne (optional)</span><span class="sl-val" id="helSeedsVal">keine</span></div><input type="range" id="helSeeds" min="0" max="20" step="5" value="0" oninput="onHelAdd()"><div class="rc-sub" style="margin-top:0.2rem">in % vom Gesamtmehl, als Quellstück über Nacht eingeweicht</div></div>
   </div>
   <div class="section-label">Backgefäss</div>
   <div class="vessel-chooser">
@@ -664,6 +666,7 @@ function onRecipeFlour(key){
   recipeFlour[key]=val;
   const labelEl=document.getElementById(prefix+'FlourVal');
   if(labelEl)labelEl.innerHTML=val+'<small>g</small>';
+  if(key==='helles')helLabels();
   if(key==='mischbrot'){const nv=document.getElementById('misNutsVal');if(nv)nv.textContent=mischNuts?mischNuts+' % = '+nutsGrams()+' g':'keine';}
   if(recipeRenderTimer[key])clearTimeout(recipeRenderTimer[key]);
   recipeRenderTimer[key]=setTimeout(()=>renderRecipe(key),300);
@@ -783,6 +786,17 @@ function showMatPhoto(input,imgId){
   reader.readAsDataURL(input.files[0]);
 }
 
+let helNuts=0,helSeeds=0;
+function helG(pct){return Math.round((recipeFlour.helles||500)*pct/100/5)*5;}
+function helLabels(){
+  document.getElementById('helNutsVal').textContent=helNuts?helNuts+' % = '+helG(helNuts)+' g':'keine';
+  document.getElementById('helSeedsVal').textContent=helSeeds?helSeeds+' % = '+helG(helSeeds)+' g':'keine';
+}
+function onHelAdd(){
+  helNuts=parseInt(document.getElementById('helNuts').value);
+  helSeeds=parseInt(document.getElementById('helSeeds').value);
+  helLabels();renderRecipe('helles');
+}
 let mischNuts=0;
 function onMischNuts(){
   mischNuts=parseInt(document.getElementById('misNuts').value);
@@ -796,6 +810,13 @@ function getDesc(step,key){
   const v=vesselState[key]||'topf';
   let raw=step['desc_'+v]||step.desc||'';
   if(key==='mischbrot'&&step.nutsDesc&&mischNuts>0)raw+=' '+step.nutsDesc;
+  if(key==='helles'){
+    if(step.helKey==='knead'){
+      if(helSeeds>0)raw+=' Gequollene Körner zum Schluss kurz auf Stufe 1 untermischen.';
+      if(helNuts>0)raw+=' Walnüsse ebenfalls erst ganz am Schluss einarbeiten, nur bis sie verteilt sind.';
+    }
+    if(step.helKey==='bulk'&&(helNuts>0||helSeeds>0))raw+=' Mit Zusätzen die Stockgare etwa 15–20 Minuten länger gehen lassen, Körner und Nüsse bremsen den Teig leicht.';
+  }
   return raw.replace(/\{n\}/g,Math.round((recipeFlour[key]||500)/500*8));
 }
 
@@ -813,6 +834,15 @@ function renderRecipe(key){
     div.className='step'+(isActive?' active':'')+(isDone?' done':'');
     div.id='step-'+key+'-'+i;
     let scaledIngs=scaleIngs(step.ings||[],factor);
+    if(key==='helles'){
+      const ex=[];
+      if(step.helKey==='levain'&&helSeeds>0){ex.push({a:helG(helSeeds)+' g',n:'Sonnenblumenkerne',note:'Als Quellstück über Nacht einweichen'});ex.push({a:helG(helSeeds)+' g',n:'Wasser, für das Quellstück',note:'Körner damit übergiessen, wird ganz aufgenommen'});}
+      if(step.helKey==='knead'){
+        if(helSeeds>0)ex.push({a:'alles',n:'Gequollene Körner',note:'Aus Schritt 1'});
+        if(helNuts>0)ex.push({a:helG(helNuts)+' g',n:'Walnüsse, grob gehackt',note:'Vorher 5 Min. bei 180°C rösten, dann ganz auskühlen lassen'});
+      }
+      scaledIngs=scaledIngs.concat(ex);
+    }
     if(key==='mischbrot'&&step.nutsIng&&mischNuts>0)scaledIngs=scaledIngs.concat([{a:nutsGrams()+' g',n:'Walnüsse, grob gehackt',note:'Vorher 5 Min. bei 180°C rösten, dann ganz auskühlen lassen'}]);
     let ingsHtml='';
     try{
@@ -1090,7 +1120,7 @@ RECIPES.helles={
   name:'Helles Sauerteigbrot',
   steps:[
     {
-      title:'Sauerteig ansetzen', time:'Abend — 5 min',
+      title:'Sauerteig ansetzen', time:'Abend — 5 min', helKey:'levain',
       desc:'Anstellgut im Wasser auflösen, Mehl einrühren, abdecken. Bei ca. 24°C 8–12 Stunden reifen lassen, am besten über Nacht. Er ist bereit, wenn er sich etwa verdoppelt hat, gewölbt ist und viele Blasen zeigt.',
       ings:[
         {a:'15 g',n:'Anstellgut',note:'Aktiver Weizen- oder Roggensauer'},
@@ -1109,7 +1139,7 @@ RECIPES.helles={
       info:{warum:'In der Ruhe quillt das Mehl und das Gluten baut sich von selbst auf. Der Teig wird dehnbarer und braucht danach weniger Kneten. Das ergibt eine hellere, feinere Krume.',temp:'30 min reichen. Bis zu 60 min geht auch, danach wird der Teig nicht besser.',exp:'Für ein noch weicheres, saftigeres Brot 20 g Wasser mehr zugeben (77%). Das braucht etwas Übung beim Formen.',acht:'Salz und Sauerteig nicht vorher zugeben. Salz bremst den Glutenaufbau in dieser Phase, der Sauerteig würde den Teig schon säuern.'}
     },
     {
-      title:'Teig kneten', time:'8–10 min', timerSec:540,
+      title:'Teig kneten', time:'8–10 min', timerSec:540, helKey:'knead',
       desc:'Sauerteig und Salz auf den Teig geben. 3 Minuten auf Stufe 1, dann 5–6 Minuten auf Stufe 2, bis der Teig glatt ist, sich vom Rand löst und den Fenstertest besteht: dünn ausziehbar, ohne zu reissen. Teigtemperatur 24–26°C.',
       ings:[
         {a:'alles',n:'Sauerteig aus Schritt 1',note:'Reif, gewölbt und blasig'},
@@ -1118,7 +1148,7 @@ RECIPES.helles={
       info:{warum:'Weizenteig braucht ein kräftiges Glutennetz, damit er die Gärgase hält. Ohne Hefe bildet sich das Gas langsamer, deshalb muss das Netz dicht und elastisch sein.',temp:'Zieltemperatur 24–26°C. Ist es wärmer, gärt der Teig zu schnell und wird sauer, kälteres Wasser nehmen.',exp:'Von Hand: 10 Minuten kneten, mit kurzen Pausen. Die Dehn- und Faltmethode im nächsten Schritt hilft zusätzlich.',acht:'Nicht zu lange kneten, sonst erhitzt sich der Teig. Er soll weich und leicht klebrig bleiben, nicht fest wie bei einem Hefebrot.'}
     },
     {
-      title:'Stockgare mit Falten', time:'4–5 Stunden', timerSec:16200,
+      title:'Stockgare mit Falten', time:'4–5 Stunden', timerSec:16200, helKey:'bulk',
       desc:'Teig in eine geölte Schüssel geben, abdecken. In der ersten Stunde alle 30 Minuten dehnen und falten (3 Mal): Teig seitlich hochziehen und zur Mitte falten, Schüssel drehen, 4 Mal rundum. Danach ungestört bei 24°C weitergehen lassen, bis er um 50–60% gewachsen ist, nicht ganz verdoppelt. Oberfläche gewölbt, viele kleine Blasen.',
       ings:[],
       info:{warum:'Das Falten stärkt das Glutennetz sanft, ohne zu kneten. Die Säurebildung gibt Aroma und macht den Teig stabiler.',temp:'24°C: 4–5 h. 22°C: 5–6 h. 27°C: 3–4 h. Die Zeit hängt von der Kraft deines Sauerteigs ab. Nach dem Volumen richten, nicht nach der Uhr.',exp:'Wer das Brot saurer mag, lässt die Stockgare ca. 30 Minuten länger gehen oder lagert den Teig danach kalt.',acht:'Nicht bis zur vollen Verdopplung gehen lassen. Zu weit gegangener Teig fällt im Topf zusammen. Lieber etwas früher formen.'}
