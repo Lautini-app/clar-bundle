@@ -339,6 +339,11 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
       <div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="cFlourVal">750<small>g</small></span></div>
       <input type="range" id="cFlour" min="500" max="1500" step="50" value="750" oninput="calcCiabatta()">
     </div>
+    <div class="sl-block" style="margin-top:0.9rem">
+      <div class="sl-head"><span class="sl-name">Hydration (Wasser vom Mehl)</span><span class="sl-val" id="cHydVal">78<small>%</small></span></div>
+      <input type="range" id="cHyd" min="70" max="85" step="1" value="78" oninput="calcCiabatta()">
+      <div class="rc-sub" id="cHydHint" style="margin-top:0.2rem"></div>
+    </div>
     <div class="res-grid" style="margin-top:0.75rem">
       <div class="res-cell"><div class="rc-label">Brote</div><div class="rc-val" id="cBrote">—</div><div class="rc-sub" id="cBroteSub"></div></div>
       <div class="res-cell"><div class="rc-label">TA</div><div class="rc-val" id="cTA">—</div></div>
@@ -381,6 +386,7 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div class="section-label">Mehlmenge</div>
   <div class="card">
     <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="misFlourVal">500<small>g</small></span></div><input type="range" id="misFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('mischbrot')"></div>
+    <div class="sl-block" style="margin-top:0.9rem"><div class="sl-head"><span class="sl-name">Walnüsse (optional)</span><span class="sl-val" id="misNutsVal">keine</span></div><input type="range" id="misNuts" min="0" max="20" step="5" value="0" oninput="onMischNuts()"><div class="rc-sub" style="margin-top:0.2rem">in % vom Gesamtmehl — 15 % ist ein guter Start</div></div>
   </div>
   <div class="section-label">Backgefäss</div>
   <div class="vessel-chooser">
@@ -637,6 +643,7 @@ function onRecipeFlour(key){
   recipeFlour[key]=val;
   const labelEl=document.getElementById(prefix+'FlourVal');
   if(labelEl)labelEl.innerHTML=val+'<small>g</small>';
+  if(key==='mischbrot'){const nv=document.getElementById('misNutsVal');if(nv)nv.textContent=mischNuts?mischNuts+' % = '+nutsGrams()+' g':'keine';}
   if(recipeRenderTimer[key])clearTimeout(recipeRenderTimer[key]);
   recipeRenderTimer[key]=setTimeout(()=>renderRecipe(key),300);
 }
@@ -755,9 +762,19 @@ function showMatPhoto(input,imgId){
   reader.readAsDataURL(input.files[0]);
 }
 
+let mischNuts=0;
+function onMischNuts(){
+  mischNuts=parseInt(document.getElementById('misNuts').value);
+  const g=Math.round((recipeFlour.mischbrot||500)*mischNuts/100/5)*5;
+  document.getElementById('misNutsVal').textContent=mischNuts?mischNuts+' % = '+g+' g':'keine';
+  renderRecipe('mischbrot');
+}
+function nutsGrams(){return Math.round((recipeFlour.mischbrot||500)*mischNuts/100/5)*5;}
+
 function getDesc(step,key){
   const v=vesselState[key]||'topf';
-  const raw=step['desc_'+v]||step.desc||'';
+  let raw=step['desc_'+v]||step.desc||'';
+  if(key==='mischbrot'&&step.nutsDesc&&mischNuts>0)raw+=' '+step.nutsDesc;
   return raw.replace(/\{n\}/g,Math.round((recipeFlour[key]||500)/500*8));
 }
 
@@ -774,7 +791,8 @@ function renderRecipe(key){
     const div=document.createElement('div');
     div.className='step'+(isActive?' active':'')+(isDone?' done':'');
     div.id='step-'+key+'-'+i;
-    const scaledIngs=scaleIngs(step.ings||[],factor);
+    let scaledIngs=scaleIngs(step.ings||[],factor);
+    if(key==='mischbrot'&&step.nutsIng&&mischNuts>0)scaledIngs=scaledIngs.concat([{a:nutsGrams()+' g',n:'Walnüsse, grob gehackt',note:'Vorher 5 Min. bei 180°C rösten, dann ganz auskühlen lassen'}]);
     let ingsHtml='';
     try{
       ingsHtml=scaledIngs.length?'<div class="ing-block">'+scaledIngs.map(ing=>`<div class="ing-row"><span class="ir-amount">${ing.a}</span><div class="ir-right"><div class="ir-name">${ing.n}</div>${ing.note?`<div class="ir-note">${ing.note}</div>`:''}</div></div>`).join('')+'</div>':'';
@@ -895,6 +913,8 @@ RECIPES.mischbrot={
     },
     {
       title:'Hauptteig mischen', time:'Backtag — 10 min',
+      nutsIng:true,
+      nutsDesc:'Walnüsse erst ganz am Schluss zugeben: 1 Minute auf Stufe 1 einarbeiten, nur bis sie verteilt sind — sonst werden sie zerrieben und färben den Teig grau-violett.',
       desc:'Sauerteig im warmen Wasser auflösen, Mehl zugeben. 6 min Stufe 1, dann 3–4 min Stufe 2. Salz und Kochstück etappenweise einkneten sobald der Teig einigermassen glatt ist. Reservewasser nur tröpfchenweise zugeben falls der Teig noch zu fest ist — aufhören sobald er weich genug ist.',
       ings:[
         {a:'90 g',n:'Roggenmehl 997',note:''},
@@ -1010,14 +1030,17 @@ function calcCiabatta(){
   const pA=Math.round(mehl*0.06);
   // Hauptteig
   const hM=mehl-pM;
-  const totalW=Math.round(mehl*0.78); // 78% Hydration gesamt
+  const hyd=parseInt(document.getElementById('cHyd').value);
+  document.getElementById('cHydVal').innerHTML=hyd+'<small>%</small>';
+  document.getElementById('cHydHint').textContent=hyd<=74?'Fester Teig — leichter zu formen, etwas dichtere Krume':hyd<=79?'Standard — offene Krume, gut zu handhaben':hyd<=82?'Sehr weich und klebrig — nasse Hände, Übung nötig':'Extrem nass — nur für Erfahrene, fast flüssig';
+  const totalW=Math.round(mehl*hyd/100);
   const hW=totalW-pW;
   const salz=Math.round(mehl*0.02);
   // Brote
   const brote=mehl>=900?2:1;
   document.getElementById('cBrote').textContent=brote;
-  document.getElementById('cBroteSub').textContent=brote===2?'à '+(Math.round((mehl*1.78/2)/50)*50)+'g':'1 grosses Brot';
-  document.getElementById('cTA').textContent='TA '+Math.round(100+78);
+  document.getElementById('cBroteSub').textContent=brote===2?'à '+(Math.round((mehl*(1+hyd/100)/2)/50)*50)+'g':'1 grosses Brot';
+  document.getElementById('cTA').textContent='TA '+(100+hyd);
   document.getElementById('cPM').innerHTML=pM+'<span class="rc-unit">g</span>';
   document.getElementById('cPW').innerHTML=pW+'<span class="rc-unit">g</span>';
   document.getElementById('cPA').innerHTML=pA+'<span class="rc-unit">g</span>';
