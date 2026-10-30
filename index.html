@@ -422,6 +422,11 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div class="card">
     <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="helFlourVal">500<small>g</small></span></div><input type="range" id="helFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('helles')"></div>
     <div class="rc-sub" style="margin-top:0.2rem">Weizensauerteig ohne Hefe, 75 % Hydration. Abends ansetzen, am Folgetag oder über Nacht im Kühlschrank backen. Noch kein Anstellgut? <a href="#" onclick="showPage('starter');return false" style="color:var(--accent);font-weight:500">Hier ansetzen</a></div>
+    <div class="sl-head" style="margin-top:0.9rem"><span class="sl-name">Mehlsorte</span></div>
+    <div class="chips" id="hel-grain" style="margin:0.3rem 0 0">
+      <button class="chip active" data-g="weizen" onclick="setHelGrain('weizen')">Weizen 550</button>
+      <button class="chip" data-g="dinkel" onclick="setHelGrain('dinkel')">Dinkel 630</button>
+    </div>
     <div class="sl-block" style="margin-top:0.9rem"><div class="sl-head"><span class="sl-name">Walnüsse (optional)</span><span class="sl-val" id="helNutsVal">keine</span></div><input type="range" id="helNuts" min="0" max="20" step="5" value="0" oninput="onHelAdd()"></div>
     <div class="sl-block"><div class="sl-head"><span class="sl-name">Sonnenblumenkerne (optional)</span><span class="sl-val" id="helSeedsVal">keine</span></div><input type="range" id="helSeeds" min="0" max="20" step="5" value="0" oninput="onHelAdd()"><div class="rc-sub" style="margin-top:0.2rem">in % vom Gesamtmehl, als Quellstück über Nacht eingeweicht</div></div>
   </div>
@@ -800,7 +805,24 @@ function showMatPhoto(input,imgId){
   reader.readAsDataURL(input.files[0]);
 }
 
-let helNuts=0,helSeeds=0;
+let helNuts=0,helSeeds=0,helGrain='weizen';
+function setHelGrain(g){
+  helGrain=g;
+  document.querySelectorAll('#hel-grain .chip').forEach(b=>b.classList.toggle('active',b.dataset.g===g));
+  renderRecipe('helles');
+}
+// Dinkel: weniger Wasser (70 %), kürzer kneten und gehen lassen — Dinkelgluten ist empfindlich
+const HEL_DINKEL={
+  0:{ings:[{a:'15 g',n:'Anstellgut',note:'Aktiver Weizen- oder Roggensauer'},{a:'75 g',n:'Dinkelmehl hell (Typ 630, CH: Dinkelweissmehl)',note:'15% des Gesamtmehls'},{a:'75 g',n:'Wasser, 30°C',note:'Gleich viel wie Mehl'}]},
+  1:{ings:[{a:'425 g',n:'Dinkelmehl hell (Typ 630, CH: Dinkelweissmehl)',note:'Restliches Mehl'},{a:'275 g',n:'Wasser, 28°C',note:'Mit dem Sauerteig zusammen 70% Hydration'}],
+     desc:'Mehl und Wasser nur grob vermischen, bis kein trockenes Mehl mehr zu sehen ist. Abdecken und 20–30 Minuten ruhen lassen. Sauerteig und Salz kommen noch nicht dazu. Dinkel nimmt Wasser schnell auf, die Ruhe darf nicht länger sein.',time:'20–30 min'},
+  2:{desc:'Sauerteig und Salz auf den Teig geben. Nur kurz kneten: 3 Minuten auf Stufe 1, dann 2–3 Minuten auf Stufe 2, bis der Teig gerade eben glatt ist. Nicht übermischen, Dinkelgluten reisst schnell und der Teig wird dann schmierig. Teigtemperatur 24–26°C.',time:'5–6 min',timerSec:360,
+     info:{warum:'Dinkelgluten ist weicher und weniger dehnbar als Weizengluten. Er baut sich schnell auf, überknetet aber auch schnell. Deshalb kurz kneten und den Rest durch Falten erledigen.',temp:'Zieltemperatur 24–26°C. Dinkelteig reagiert empfindlich auf Wärme, im Zweifel kühleres Wasser nehmen.',exp:'Von Hand genügt es, den Teig 5 Minuten zu kneten und dann zu falten. Der Fenstertest klappt bei Dinkel nur dünn, nicht glasklar.',acht:'Wird der Teig plötzlich weich, klebrig und glänzt, ist er überknetet. Dann nicht retten wollen, sondern direkt in die Gare gehen lassen und vorsichtig falten.'}},
+  3:{desc:'Teig in eine geölte Schüssel geben, abdecken. In der ersten Stunde 2 Mal dehnen und falten (nach 30 und 60 Minuten): Teig seitlich hochziehen und zur Mitte falten, Schüssel drehen, 4 Mal rundum. Danach ungestört bei 24°C weitergehen lassen, bis er um 40–50% gewachsen ist. Dinkel gärt schneller als Weizen und fällt leichter zusammen.',time:'3–4 Stunden',timerSec:12600,
+     info:{warum:'Dinkelteig hat weniger Gärstabilität. Er geht schneller auf, bricht aber auch früher ein. Deshalb früher abbrechen als bei Weizen.',temp:'24°C: 3–4 h. 22°C: 4–5 h. 27°C: 2,5–3 h. Nach dem Volumen richten, nicht nach der Uhr.',exp:'Ein Hauch Honig oder Malz im Teig (5 g) gibt Dinkel mehr Farbe und Süsse.',acht:'Zu lange Gare: Der Teig wird flach und schmierig. Lieber 20 Minuten früher formen.'}},
+  5:{desc_topf:'Körbchen abdecken und in den Kühlschrank stellen. Nach 8–12 Stunden kalt einschiessen und backen, ohne den Teig aufzuwärmen. Wer am gleichen Tag backen will: 1–1,5 Stunden bei Raumtemperatur reifen lassen. Nicht länger als 12 Stunden kühlen, Dinkel verträgt das schlechter als Weizen.',time:'Kühlschrank 8–12 h'}
+};
+
 function helG(pct){return Math.round((recipeFlour.helles||500)*pct/100/5)*5;}
 function helLabels(){
   document.getElementById('helNutsVal').textContent=helNuts?helNuts+' % = '+helG(helNuts)+' g':'keine';
@@ -842,7 +864,9 @@ function renderRecipe(key){
   // Scaling factor vs base 500g for roggen/weizen/zopf; ciabatta manages its own
   const BASE={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500,helles:500};
   const factor=(recipeFlour[key]&&BASE[key])?recipeFlour[key]/BASE[key]:1;
-  recipe.steps.forEach((step,i)=>{
+  recipe.steps.forEach((step0,i)=>{
+    let step=step0;
+    if(key==='helles'&&helGrain==='dinkel'&&HEL_DINKEL[i]){const o=HEL_DINKEL[i];step=Object.assign({},step0,o);if(o.info)step.info=Object.assign({},step0.info,o.info);}
     const isDone=i<stepState[key],isActive=i===stepState[key];
     const div=document.createElement('div');
     div.className='step'+(isActive?' active':'')+(isDone?' done':'');
@@ -1360,7 +1384,8 @@ const CATALOG=[
   {group:'Sauerteigbrote',cat:'sauer',items:[
     {key:'roggen',ico:'🌾',title:'Roggenvollkornbrot',desc:'Saftig und kräftig, mit Quellstück',time:'ab 12 h vorher',level:'Mittel'},
     {key:'helles',form:'broetchen',ico:'🫓',title:'Sauerteig-Brötchen',desc:'Gleicher Teig, über Nacht im Kühlschrank',time:'Abend + Morgen',level:'Mittel'},
-    {key:'helles',ico:'🥖',title:'Helles Sauerteigbrot',desc:'Weizensauerteig ohne Hefe, mild und fein',time:'Abend + Tag',level:'Mittel'},
+    {key:'helles',grain:'dinkel',ico:'🌿',title:'Helles Dinkel-Sauerteigbrot',desc:'Mild und nussig, kürzere Knet- und Gärzeiten',time:'Abend + Tag',level:'Mittel'},
+    {key:'helles',grain:'weizen',ico:'🥖',title:'Helles Sauerteigbrot',desc:'Weizensauerteig ohne Hefe, mild und fein',time:'Abend + Tag',level:'Mittel'},
     {key:'mischbrot',ico:'🍞',title:'Helles Roggenmischbrot 60/40',desc:'Mild, fluffig, hält lange frisch',time:'2 Tage',level:'Mittel'},
     {key:'ciabatta',ico:'🥖',title:'Sauerteig-Ciabatta',desc:'Luftig mit offener Porung, mit Poolish',time:'2 Abende + Morgen',level:'Mittel'}
   ]},
@@ -1388,14 +1413,15 @@ function renderHome(){
   document.getElementById('home-list').innerHTML=CATALOG
     .filter(g=>homeFilter==='alle'||g.cat===homeFilter)
     .map(g=>`<div class="section-label">${g.group}</div>`+g.items.map(it=>
-      `<button class="rc-card" onclick="openRecipe('${it.key}','${it.form||''}')">
+      `<button class="rc-card" onclick="openRecipe('${it.key}','${it.form||''}','${it.grain||''}')">
         <div class="rc-ico">${it.ico}</div>
         <div class="rc-body"><div class="rc-title">${it.title}</div><div class="rc-desc">${it.desc}</div>
           <div class="rc-tags"><span class="rc-tag">${it.level}</span><span class="rc-tag plain">🕒 ${it.time}</span></div></div>
         <span class="rc-chev">›</span></button>`).join('')).join('');
 }
 
-function openRecipe(key,form){
+function openRecipe(key,form,grain){
+  if(grain&&key==='helles')setHelGrain(grain);
   if(form){
     vesselState[key]=form;
     document.querySelectorAll('#page-'+key+' .vessel-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===form));
