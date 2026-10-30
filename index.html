@@ -920,6 +920,7 @@ function renderRecipe(key){
         <div class="step-desc">${getDesc(step,key)}</div>
         ${timerHtml}
         ${infoHtml}
+        ${/kneten|Stockgare|Formen|Falten/.test(step.title)?`<button class="back-link" style="margin:.6em 0 0" onclick="showPage('tipps')">Teig klebt? Tipps &amp; Werkzeug →</button>`:''}
         <div class="step-nav">
           ${i>0?`<button onclick="goStep('${key}',${i-1})">← Zurück</button>`:'<div></div>'}
           <button class="next-btn" style="${isLast?'background:var(--green);border-color:var(--green)':''}" onclick="goStep('${key}',${isLast?0:i+1})">${isLast?'Neu starten 🍞':'Weiter →'}</button>
