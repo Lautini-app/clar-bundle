@@ -403,12 +403,25 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div id="steps-mischbrot"></div>
 </div>
 
+<!-- STARTER -->
+<div class="page" id="page-starter">
+  <div class="section-label">Sauerteig ansetzen &amp; pflegen</div>
+  <div class="card">
+    <div class="rc-sub" style="font-size:0.75rem;line-height:1.7;color:var(--muted)">Dein eigener Sauerteig in etwa einer Woche. Du brauchst nur Roggenvollkornmehl, Wasser und ein Glas. Danach Pflege im Kühlschrank und Auffrischen vor dem Backen.</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-starter" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-starter-txt">Schritt 1 von 7</span><span class="prog-recipe">Sauerteig-Starter</span></div>
+  </div>
+  <div id="steps-starter"></div>
+</div>
+
 <!-- HELLES SAUERTEIGBROT -->
 <div class="page" id="page-helles">
   <div class="section-label">Mehlmenge</div>
   <div class="card">
     <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="helFlourVal">500<small>g</small></span></div><input type="range" id="helFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('helles')"></div>
-    <div class="rc-sub" style="margin-top:0.2rem">Weizensauerteig ohne Hefe, 75 % Hydration. Abends ansetzen, am Folgetag oder über Nacht im Kühlschrank backen.</div>
+    <div class="rc-sub" style="margin-top:0.2rem">Weizensauerteig ohne Hefe, 75 % Hydration. Abends ansetzen, am Folgetag oder über Nacht im Kühlschrank backen. Noch kein Anstellgut? <a href="#" onclick="showPage('starter');return false" style="color:var(--accent);font-weight:500">Hier ansetzen</a></div>
     <div class="sl-block" style="margin-top:0.9rem"><div class="sl-head"><span class="sl-name">Walnüsse (optional)</span><span class="sl-val" id="helNutsVal">keine</span></div><input type="range" id="helNuts" min="0" max="20" step="5" value="0" oninput="onHelAdd()"></div>
     <div class="sl-block"><div class="sl-head"><span class="sl-name">Sonnenblumenkerne (optional)</span><span class="sl-val" id="helSeedsVal">keine</span></div><input type="range" id="helSeeds" min="0" max="20" step="5" value="0" oninput="onHelAdd()"><div class="rc-sub" style="margin-top:0.2rem">in % vom Gesamtmehl, als Quellstück über Nacht eingeweicht</div></div>
   </div>
@@ -416,6 +429,7 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div class="vessel-chooser">
     <button class="vessel-btn active" data-v="topf" onclick="setVessel('helles','topf',this)"><span class="vb-icon">🫕</span><div class="vb-name">Gusseisentopf</div><div class="vb-sub">Beste Kruste</div></button>
     <button class="vessel-btn" data-v="kasten" onclick="setVessel('helles','kasten',this)"><span class="vb-icon">🍞</span><div class="vb-name">Kastenform</div><div class="vb-sub">Klassisch</div></button>
+    <button class="vessel-btn" data-v="broetchen" onclick="setVessel('helles','broetchen',this)"><span class="vb-icon">🥖</span><div class="vb-name">Brötchen</div><div class="vb-sub">8 Stück</div></button>
   </div>
   <div class="progress-wrap">
     <div class="progress-bar"><div class="progress-fill" id="prog-helles" style="width:0%"></div></div>
@@ -448,9 +462,9 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
 
 <script>
 const timers={};
-const stepState={roggen:0,weizen:0,zopf:0,ciabatta:0,mischbrot:0,laugen:0,helles:0};
+const stepState={roggen:0,weizen:0,zopf:0,ciabatta:0,mischbrot:0,laugen:0,helles:0,starter:0};
 
-function formatTime(s){const m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0');}
+function formatTime(s){const p=n=>String(n).padStart(2,'0');if(s>=3600){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+':'+p(m)+':'+p(s%60);}const m=Math.floor(s/60);return m+':'+p(s%60);}
 const vesselState={roggen:'topf',weizen:'topf',laugen:'brezel',helles:'topf'};
 
 // INFO STRUCTURE: {warum, temp, exp, acht}
@@ -1115,6 +1129,55 @@ function calcCiabatta(){
   renderRecipe('ciabatta');
 }
 
+// ── SAUERTEIG ANSETZEN & PFLEGEN ────────────────────────────
+RECIPES.starter={
+  name:'Sauerteig ansetzen & pflegen',
+  steps:[
+    {
+      title:'Tag 1: Ansetzen', time:'5 min',
+      desc:'Mehl und Wasser in einem Glas glatt verrühren, locker abdecken (Deckel nur auflegen, nicht zuschrauben). An einen Ort mit 24–26°C stellen, z. B. auf den Kühlschrank oder in den Backofen mit eingeschaltetem Licht. 24 Stunden stehen lassen.',
+      ings:[{a:'50 g',n:'Roggenvollkornmehl',note:'Vollkorn bringt viele Mikroorganismen mit'},{a:'50 g',n:'Wasser, 30°C',note:'Lauwarm, nicht heiss'}],
+      info:{warum:'Im Mehl leben von Natur aus Milchsäurebakterien und wilde Hefen. Mit Wasser und Wärme beginnen sie sich zu vermehren. Das ist dein späterer Sauerteig.',temp:'24–26°C sind ideal. Unter 20°C geht alles viel langsamer, über 30°C gewinnen unerwünschte Bakterien.',exp:'Roggen ist am einfachsten, weil er viel Nahrung für die Bakterien hat. Später kannst du auf Weizenmehl umstellen.',acht:'Zuerst passiert oft wenig oder es riecht seltsam (nach Käse oder Nagellack). Das ist normal und geht in den nächsten Tagen vorbei.'}
+    },
+    {
+      title:'Tag 2: Füttern', time:'5 min',
+      desc:'Ob schon Blasen da sind oder nicht: Die Mischung gut umrühren, 50 g davon im Glas lassen und den Rest wegwerfen. Mehl und Wasser frisch zugeben, verrühren, abdecken. Wieder 24 Stunden bei 24–26°C.',
+      ings:[{a:'50 g',n:'Mischung von gestern',note:'Rest wegwerfen'},{a:'50 g',n:'Roggenvollkornmehl',note:''},{a:'50 g',n:'Wasser, 30°C',note:''}],
+      info:{warum:'Beim Wegwerfen bleibt nur ein kleiner Teil zurück, der mit frischem Futter versorgt wird. Sonst wird die Säure zu stark und bremst die Hefen.',temp:'Immer zur gleichen Tageszeit füttern, das macht den Rhythmus einfacher.',exp:'Den Rest wegzuwerfen tut weh? Daraus lassen sich Pfannkuchen oder Cracker machen. Der Teig ist aber noch sehr sauer und riecht streng.',acht:'Nicht zu viel Mehl aufs Mal zugeben. Die Mischung soll wie dicker Pfannkuchenteig bleiben.'}
+    },
+    {
+      title:'Tag 3–5: Zweimal täglich füttern', time:'2× täglich',
+      desc:'Wie gestern: umrühren, 50 g behalten, Rest weg, 50 g Mehl und 50 g Wasser dazu. Jetzt alle 12 Stunden, also morgens und abends. Nach 2–3 Tagen sollte die Mischung nach dem Füttern aufgehen, Blasen bilden und angenehm säuerlich riechen.',
+      ings:[{a:'50 g',n:'Mischung vom letzten Mal',note:'Rest wegwerfen'},{a:'50 g',n:'Roggenvollkornmehl',note:'Ab jetzt gern auch Weizenmehl 550'},{a:'50 g',n:'Wasser, 30°C',note:''}],
+      info:{warum:'Der häufige Rhythmus drängt die unerwünschten Bakterien zurück und lässt die Milchsäurebakterien und Hefen gewinnen. Die Mischung wird kräftiger und riecht milder.',temp:'12-Stunden-Rhythmus bei 24–26°C. Etwas kühler (22°C) geht auch, dann dauert alles etwas länger.',exp:'Mit einem Gummiband am Glas siehst du das Wachstum: Höhe nach dem Füttern markieren und nach 4–6 Stunden prüfen.',acht:'Noch nichts nach 5 Tagen? Weiter füttern, nicht aufgeben. Manche Starter brauchen 10 Tage. Kommt schwarzer oder pelziger Schimmel (rosa, orange oder grün), alles wegwerfen und neu starten. Grauer Saft darauf ist harmlos.'}
+    },
+    {
+      title:'Tag 6–7: Reifetest', time:'4–6 h', timerSec:21600,
+      desc:'Nach dem Füttern abmessen: Bei 24–26°C soll sich die Mischung innerhalb von 4–6 Stunden verdoppeln, Kuppel und viele Blasen zeigen und angenehm säuerlich bis fruchtig riechen. Das gelingt zwei Tage hintereinander? Dann ist dein Anstellgut backbereit.',
+      ings:[{a:'50 g',n:'Anstellgut',note:'Wie bisher, Rest wegwerfen'},{a:'50 g',n:'Mehl',note:''},{a:'50 g',n:'Wasser, 30°C',note:''}],
+      info:{warum:'Wenn der Teig zuverlässig verdoppelt, hat er genug Hefen und Bakterien, um ein Brot ohne zusätzliche Hefe zu treiben.',temp:'Je wärmer, desto schneller. Bei 22°C können es 6–8 Stunden werden.',exp:'Der oft gezeigte Schwimmtest (ein Löffel im Wasser) ist unzuverlässig. Verlass dich auf die Verdopplung.',acht:'Verdoppelt sich der Starter nicht? Noch ein paar Tage im 12-Stunden-Rhythmus füttern und etwas wärmer stellen.'}
+    },
+    {
+      title:'Aufbewahren', time:'5 min',
+      desc:'Fertiges Anstellgut in ein sauberes Glas mit lockerem Deckel geben und in den Kühlschrank stellen. Einmal pro Woche auffrischen: 10–20 g Anstellgut mit 50 g Mehl und 50 g Wasser mischen, 1–2 Stunden bei Raumtemperatur stehen lassen, dann wieder in den Kühlschrank. Der Rest kann weg oder in ein Rezept.',
+      ings:[{a:'10–20 g',n:'Anstellgut',note:'Aus dem Kühlschrank'},{a:'50 g',n:'Mehl',note:'Roggen oder Weizen'},{a:'50 g',n:'Wasser, 30°C',note:''}],
+      info:{warum:'Kälte macht die Mikroorganismen träge, so bleibt der Starter wochenlang stabil. Das wöchentliche Füttern liefert frisches Futter.',temp:'Kühlschrank bei 4–5°C. Im Urlaub hält er bis zu 4 Wochen ohne Füttern, braucht danach aber 2–3 Auffrischungen.',exp:'Wer selten bäckt, kann Anstellgut auch trocknen oder einfrieren. Das ist aber ein eigenes Thema.',acht:'Eine graue Flüssigkeit oben (Hooch) heisst: Der Starter hat Hunger. Abgiessen oder unterrühren und füttern. Er ist nicht kaputt.'}
+    },
+    {
+      title:'Vor dem Backen auffrischen', time:'Abend vorher, 6–8 h', timerSec:21600,
+      desc:'Anstellgut aus dem Kühlschrank nehmen und mit Mehl und Wasser mischen. Bei 24°C stehen lassen, bis es sich verdoppelt hat und kuppelförmig aussieht. Dann ist es auf dem Höhepunkt und bereit für den Sauerteig im Rezept. Träge nach dem Kühlschrank? Dann zwei Auffrischungen im Abstand von 12 Stunden.',
+      ings:[{a:'10 g',n:'Anstellgut',note:'Aus dem Kühlschrank'},{a:'50 g',n:'Mehl',note:'Gleiche Sorte wie im Rezept'},{a:'50 g',n:'Wasser, 30°C',note:''}],
+      info:{warum:'Anstellgut direkt aus dem Kühlschrank ist müde. Eine Auffrischung bringt es in Schwung und gibt dem Teig die nötige Kraft.',temp:'24°C: 6–8 h. Wärmer: 4–5 h. Über Nacht bei 20°C: 10–12 h.',exp:'Für ein milderes Brot das Verhältnis 1:5:5 (statt 1:2.5:2.5) wählen. So reift es langsamer und wird weniger sauer.',acht:'Nicht warten, bis es zusammenfällt. Der Höhepunkt ist, wenn es gewölbt ist und viele Blasen zeigt.'}
+    },
+    {
+      title:'Wenn etwas schiefgeht', time:'Hilfe',
+      desc:'Hooch (graue Flüssigkeit oben): abgiessen oder unterrühren, öfter füttern. Riecht nach Nagellack oder Aceton: Der Starter hat Hunger, füttern. Sehr sauer und streng: öfter und mit mehr Futter füttern (1:5:5). Wenig Aktivität: wärmer stellen (26°C), Roggenvollkorn zugeben. Fruchtfliegen: Glas mit sauberem Tuch abdecken. Schimmel (pelzig, schwarz, rosa, orange): alles wegwerfen und neu beginnen.',
+      ings:[],
+      info:{warum:'Sauerteig ist ein lebendiges Ökosystem, das auf Temperatur, Futter und Rhythmus reagiert. Die meisten Probleme sind Futterprobleme.',temp:'Faustregel: Starter mag 24–26°C, regelmässiges Futter und etwas Geduld.',exp:'Führe ein kurzes Tagebuch (Datum, Uhrzeit, Höhe). Nach einer Woche erkennst du den Rhythmus deines Starters.',acht:'Kein Sauerteig-Starter wird je gefährlich bei normaler Pflege. Bei Schimmel gilt aber: wegwerfen, nie abkratzen.'}
+    }
+  ]
+};
+
 // ── HELLES SAUERTEIGBROT (Weizen, ohne Hefe) ────────────────
 RECIPES.helles={
   name:'Helles Sauerteigbrot',
@@ -1155,25 +1218,29 @@ RECIPES.helles={
     },
     {
       title:'Formen', time:'10 min',
+      desc_broetchen:'Teig auf eine leicht bemehlte Fläche kippen und in {n} gleich grosse Stücke teilen (ca. 110 g, mit Waage). Jedes Stück rundwirken: Teig zur Mitte falten und mit der hohlen Hand auf der Arbeitsfläche drehen, bis die Oberfläche straff ist. Mit dem Schluss nach unten auf ein mit Backpapier belegtes Blech legen, mit Abstand.',
       desc:'Teig auf eine leicht bemehlte Fläche kippen. Sanft zu einem Rechteck dehnen, dann Seiten zur Mitte falten und zu einem straffen runden oder länglichen Laib aufrollen. Mit dem Schluss nach oben in ein gut bemehltes Gärkörbchen (oder eine mit Tuch ausgelegte Schüssel) legen.',
       ings:[],
       info:{warum:'Beim Formen entsteht Oberflächenspannung. Sie hilft dem Laib, im Ofen nach oben zu wachsen statt breit zu laufen.',temp:'Teig sollte Raumtemperatur haben. Ist er zu weich, kurz 15 Minuten ins Kühle stellen.',exp:'Reismehl zum Bemehlen des Körbchens verhindert zuverlässig das Ankleben.',acht:'Nicht zu viel Mehl einarbeiten, sonst entstehen Mehlstreifen in der Krume. Nicht entgasen, die Blasen sollen bleiben.'}
     },
     {
       title:'Stückgare', time:'Kühlschrank 10–14 h',
+      desc_broetchen:'Blech locker mit Folie oder einem Tuch abdecken und über Nacht (8–12 Stunden) in den Kühlschrank stellen. Kalt einschneiden und backen. Am gleichen Tag: ca. 1 Stunde bei Raumtemperatur gehen lassen, bis die Brötchen sichtbar aufgegangen sind und bei sanftem Fingerdruck langsam zurückfedern.',
       desc:'Körbchen abdecken (Haube oder Tuch) und in den Kühlschrank stellen. Nach 10–14 Stunden kalt einschiessen und backen, ohne den Teig aufzuwärmen. Wer am gleichen Tag backen will: 1,5–2 Stunden bei Raumtemperatur reifen lassen, bis der Teig beim sanften Fingerdruck langsam zurückfedert.',
       ings:[],
       info:{warum:'Im Kühlschrank gärt der Teig langsam weiter und entwickelt viel Aroma. Kalte Teiglinge lassen sich leicht einschneiden und haben im Ofen mehr Trieb.',temp:'4°C: 10–14 h, bis zu 18 h möglich. Raumtemperatur 22°C: 1,5–2 h.',exp:'Je länger kalt, desto aromatischer und saurer. Zum Einstellen: ein Abend und ein Morgen backen ist ideal.',acht:'Beim Fingertest muss die Delle langsam zur Hälfte zurückkommen. Springt sie sofort zurück, ist der Teig noch jung. Bleibt sie ganz, ist er übergegangen.'}
     },
     {
-      title:'Einschneiden & Backen', time:'45–50 min', timerSec:2700,
+      title:'Einschneiden & Backen', time:'20–50 min', timerSec:2700, timers:{broetchen:1260},
+      desc_broetchen:'Ofen auf 240°C vorheizen, eine ofenfeste Schale auf den Boden stellen. Brötchen kalt einschneiden (ein Schnitt längs oder ein Kreuz). Blech einschieben, 1 Tasse heisses Wasser in die Schale giessen, sofort Tür schliessen. Nach 10 Minuten die Schale herausnehmen, weitere 10–12 Minuten backen bis goldbraun. Klopftest: hohl = fertig.',
       desc_topf:'Topf mit Deckel im Ofen auf 250°C vorheizen, mindestens 30 Minuten. Teigling auf Backpapier stürzen, mit einem scharfen Messer 0,5 cm tief einschneiden. Mit dem Papier in den heissen Topf heben, Deckel drauf. 20 Minuten bei 250°C. Deckel ab, 210°C, weitere 25 Minuten bis goldbraun. Klopftest: hohl = fertig.',
       desc_kasten:'Ofen auf 250°C vorheizen, ofenfeste Schale mit heissem Wasser auf den Boden stellen. Teigling kalt in die geölte Kastenform stürzen, längs einschneiden. 10 Minuten bei 250°C mit Dampf, Schale rausnehmen, 210°C und weitere 35–40 Minuten. Klopftest: hohl = fertig.',
       ings:[],
       info:{warum:'Die hohe Anfangshitze und der Dampf erzeugen den Ofentrieb und halten die Kruste elastisch. Danach backt die niedrigere Temperatur die Krume durch und gibt der Kruste Farbe.',temp:'250°C Start, dann 210°C. Kerntemperatur bei Weizensauerteig: 96–98°C. Für eine hellere Kruste auf 200°C stellen.',exp:'Ein paar Minuten länger bei offener Tür für eine knusprigere Kruste: Ofen ausschalten und 5 Minuten stehen lassen.',acht:'Ofen und Topf müssen wirklich durchgeheizt sein. Zu helle Kruste heisst meist nicht fertig: lieber 5 Minuten länger.'}
     },
     {
-      title:'Auskühlen', time:'1,5–2 Stunden', timerSec:5400,
+      title:'Auskühlen', time:'1,5–2 Stunden', timerSec:5400, timers:{broetchen:1800},
+      desc_broetchen:'Auf einem Rost 30 Minuten auskühlen lassen. Warm schmecken sie am besten, die Krume braucht aber ein paar Minuten, um sich zu setzen. Am nächsten Tag kurz bei 180°C aufbacken.',
       desc:'Auf einem Rost vollständig auskühlen lassen. Erst dann anschneiden, sonst bleibt die Krume klebrig. Das Brot knistert beim Abkühlen. Das ist normal und ein gutes Zeichen.',
       ings:[],
       info:{warum:'Beim Auskühlen zieht die Feuchtigkeit aus der Mitte nach aussen und die Krume setzt sich. Warm angeschnitten wirkt sie noch gummiartig.',temp:'Mindestens 1,5 h. Das Brot hält sich dank Sauerteig 4–5 Tage frisch.',exp:'Am besten mit der Schnittfläche nach unten auf dem Brett oder in einem Leinentuch aufbewahren.',acht:'Nicht in Plastik einpacken, sonst wird die Kruste weich und das Brot schimmelt früher.'}
@@ -1287,8 +1354,12 @@ function updateLaugenInfo(){
 
 // ── REZEPTAUSWAHL (Startseite) ───────────────────────────────
 const CATALOG=[
+  {group:'Sauerteig-Grundlagen',cat:'sauer',items:[
+    {key:'starter',ico:'🫙',title:'Sauerteig ansetzen & pflegen',desc:'Eigenes Anstellgut in einer Woche, Pflege und Auffrischen',time:'7 Tage',level:'Einfach'}
+  ]},
   {group:'Sauerteigbrote',cat:'sauer',items:[
     {key:'roggen',ico:'🌾',title:'Roggenvollkornbrot',desc:'Saftig und kräftig, mit Quellstück',time:'ab 12 h vorher',level:'Mittel'},
+    {key:'helles',form:'broetchen',ico:'🫓',title:'Sauerteig-Brötchen',desc:'Gleicher Teig, über Nacht im Kühlschrank',time:'Abend + Morgen',level:'Mittel'},
     {key:'helles',ico:'🥖',title:'Helles Sauerteigbrot',desc:'Weizensauerteig ohne Hefe, mild und fein',time:'Abend + Tag',level:'Mittel'},
     {key:'mischbrot',ico:'🍞',title:'Helles Roggenmischbrot 60/40',desc:'Mild, fluffig, hält lange frisch',time:'2 Tage',level:'Mittel'},
     {key:'ciabatta',ico:'🥖',title:'Sauerteig-Ciabatta',desc:'Luftig mit offener Porung, mit Poolish',time:'2 Abende + Morgen',level:'Mittel'}
@@ -1334,7 +1405,7 @@ function openRecipe(key,form){
 }
 
 function initHome(){
-  ['roggen','helles','weizen','zopf','ciabatta','mischbrot','laugen'].forEach(k=>{
+  ['starter','roggen','helles','weizen','zopf','ciabatta','mischbrot','laugen'].forEach(k=>{
     const p=document.getElementById('page-'+k);
     if(p)p.insertAdjacentHTML('afterbegin','<button class="back-link" onclick="showPage(\'home\')">← Alle Rezepte</button>');
   });
@@ -1357,6 +1428,7 @@ renderRecipe('zopf');
 renderRecipe('mischbrot');
 renderRecipe('laugen');
 renderRecipe('helles');
+renderRecipe('starter');
 calcCiabatta();
 initHome();
 
