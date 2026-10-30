@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Clar Back">
+<meta name="theme-color" content="#ffffff">
+<title>Clar Back</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0efe9;--white:#ffffff;--border:#e2e0d8;--border2:#eae8e0;
+  --text:#1a1714;--muted:#8a8178;--muted2:#b5afa7;
+  --accent:#4a7c59;--accent-bg:#eef4f0;--accent-border:#c2d9cb;
+  --green:#4a8c5c;--green-bg:#edf5f0;--green-border:#b8d9c4;
+  --red:#c05050;--red-bg:#fdf0f0;--red-border:#f0c8c8;
+  --blue:#3a6fa8;--blue-bg:#edf2f9;--blue-border:#c5d8ee;
+  --yellow:#3a6348;--yellow-bg:#eef4f0;--yellow-border:#c2d9cb;
+  --purple:#6a50a0;--purple-bg:#f4f0fc;--purple-border:#d8ccf0;
+  --radius:14px;--radius-sm:9px;--radius-xs:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.09),0 2px 4px rgba(0,0,0,0.05);
+}
+html{height:100%;-webkit-text-size-adjust:100%;}
+body{min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:16px;line-height:1.5;overflow-x:hidden;}
+
+/* HEADER */
+.app-header{background:var(--white);border-bottom:1px solid var(--border);padding:1rem 1.25rem 0.9rem;position:sticky;top:0;z-index:50;}
+.header-inner{max-width:540px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:baseline;gap:0.35rem;}
+.logo-clar{font-family:'Fraunces',serif;font-size:1.35rem;font-weight:400;color:var(--text);}
+.logo-back{font-family:'Fraunces',serif;font-size:1.35rem;font-weight:400;color:#4a7c59;font-style:italic;}
+.logo-tag{font-size:0.6rem;color:var(--muted2);letter-spacing:0.07em;margin-left:0.15rem;text-transform:uppercase;}
+
+/* NAV */
+.nav{background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:57px;z-index:40;}
+.nav-inner{max-width:540px;margin:0 auto;display:flex;}
+.nav-btn{flex:1;padding:0.72rem 0.4rem;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:0.7rem;font-weight:500;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;transition:all 0.18s;}
+.nav-btn.active{color:#4a7c59;border-bottom-color:#4a7c59;}
+
+/* PAGE */
+.page{display:none;max-width:540px;margin:0 auto;padding:1.25rem 1.25rem 6rem;}
+.page.active{display:block;}
+.section-label{font-size:0.63rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);margin:1.4rem 0 0.55rem;padding-left:0.1rem;}
+.section-label:first-child{margin-top:0;}
+
+/* CARD */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.15rem;margin-bottom:0.6rem;box-shadow:var(--shadow);}
+
+/* VT GRID */
+.vt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;}
+.vt-cell{text-align:center;padding:0.65rem 0.25rem;background:var(--bg);border-radius:var(--radius-sm);}
+.vc-num{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:300;color:var(--text);line-height:1;}
+.vc-unit{font-size:0.7rem;color:var(--muted);margin-left:2px;}
+.vc-lbl{font-size:0.6rem;color:var(--muted2);margin-top:0.2rem;}
+
+/* SLIDERS */
+.sl-block{margin-bottom:1rem;}
+.sl-block:last-child{margin-bottom:0;}
+.sl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;}
+.sl-name{font-size:0.72rem;font-weight:500;color:var(--muted);}
+.sl-val{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:300;color:var(--text);}
+.sl-val small{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:0.68rem;color:var(--muted);margin-left:1px;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:32px;background:transparent;cursor:pointer;}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--border);border-radius:2px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);margin-top:-8.5px;border:2px solid var(--white);box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+input[type=range]::-moz-range-track{height:3px;background:var(--border);}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid var(--white);}
+
+/* RESULT GRID */
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;}
+.res-cell{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:0.75rem 0.9rem;}
+.res-cell.hi{background:var(--accent-bg);border-color:#c2d9cb;}
+.rc-label{font-size:0.59rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted2);margin-bottom:0.35rem;}
+.rc-val{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:300;line-height:1;color:var(--text);}
+.res-cell.hi .rc-val{color:var(--accent);}
+.rc-unit{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:0.7rem;color:var(--muted);margin-left:2px;}
+.rc-sub{font-size:0.59rem;color:var(--muted2);margin-top:0.3rem;}
+
+/* KÖRNER */
+.k-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:0.5rem;padding:0.6rem 0;border-bottom:1px solid var(--border2);}
+.k-row:last-child{border-bottom:none;padding-bottom:0;}
+.k-name{font-size:0.77rem;color:var(--text);}
+.k-factor{font-size:0.61rem;color:var(--muted2);}
+.k-inp{width:56px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:0.83rem;padding:5px 7px;text-align:right;-moz-appearance:textfield;}
+.k-inp::-webkit-outer-spin-button,.k-inp::-webkit-inner-spin-button{-webkit-appearance:none;}
+.k-inp:focus{outline:none;border-color:#4a7c59;background:var(--white);}
+.k-unit{font-size:0.67rem;color:var(--muted);}
+.quell-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-top:0.75rem;padding:0.85rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius-sm);text-align:center;}
+.qr-val{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:300;color:var(--accent);}
+.qr-lbl{font-size:0.58rem;color:var(--muted2);margin-top:0.15rem;}
+
+/* TIP */
+.tip-blue{background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:0.75rem 0.9rem;font-size:0.72rem;color:#3a5a7a;line-height:1.75;margin-top:0.6rem;}
+.tip-blue strong{font-weight:600;color:var(--blue);}
+
+/* BACKGEFÄSS CHOOSER */
+.vessel-chooser{display:flex;gap:0.6rem;margin-bottom:1rem;}
+.vessel-btn{flex:1;padding:0.85rem 0.5rem;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--white);cursor:pointer;text-align:center;transition:all 0.18s;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;}
+.vessel-btn:hover{border-color:#c2d9cb;}
+.vessel-btn.active{border-color:#4a7c59;background:var(--accent-bg);}
+.vessel-btn .vb-icon{font-size:1.6rem;display:block;margin-bottom:0.35rem;}
+.vessel-btn .vb-name{font-size:0.75rem;font-weight:500;color:var(--text);}
+.vessel-btn.active .vb-name{color:var(--accent);}
+.vessel-btn .vb-sub{font-size:0.62rem;color:var(--muted2);margin-top:0.15rem;}
+
+/* PROGRESS */
+.progress-wrap{margin-bottom:1.1rem;}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:#4a7c59;border-radius:2px;transition:width 0.4s ease;}
+.progress-label{display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;}
+.prog-text{font-size:0.64rem;color:var(--muted2);}
+.prog-recipe{font-size:0.64rem;font-weight:500;color:var(--muted);}
+
+/* STEPS */
+.step{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:0.6rem;overflow:hidden;box-shadow:var(--shadow);transition:opacity 0.25s,box-shadow 0.25s;}
+.step.done{opacity:0.42;box-shadow:none;}
+.step.active{border-color:#c2d9cb;box-shadow:var(--shadow-md);}
+.step-header{display:flex;align-items:center;gap:0.7rem;padding:0.95rem 1.05rem;cursor:pointer;user-select:none;}
+.step-num{width:27px;height:27px;border-radius:50%;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:600;color:var(--muted);flex-shrink:0;transition:all 0.2s;}
+.step.active .step-num{background:#4a7c59;color:#fff;border-color:#4a7c59;}
+.step.done .step-num{background:var(--green-bg);color:var(--green);border-color:var(--green-border);font-size:0.85rem;}
+.step-title{font-size:0.86rem;font-weight:500;color:var(--text);flex:1;}
+.step.done .step-title{color:var(--muted);}
+.step-time{font-size:0.63rem;color:var(--muted2);white-space:nowrap;margin-left:auto;}
+.step-body{padding:0 1.05rem 1.05rem;display:none;}
+.step.active .step-body{display:block;}
+
+/* ING CALLOUT */
+.ing-block{margin-bottom:0.85rem;}
+.ing-row{display:flex;align-items:flex-start;gap:0.55rem;padding:0.55rem 0.8rem;background:var(--accent-bg);border-left:2.5px solid #4a7c59;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:0.38rem;}
+.ing-row:last-child{margin-bottom:0;}
+.ir-amount{font-family:'Fraunces',serif;font-size:1rem;font-weight:300;color:var(--accent);white-space:nowrap;min-width:52px;}
+.ir-right{flex:1;}
+.ir-name{font-size:0.77rem;font-weight:500;color:var(--text);}
+.ir-note{font-size:0.64rem;color:var(--muted);margin-top:0.1rem;}
+
+/* MATERIAL LIST */
+.mat-row{display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0;border-bottom:1px solid var(--border2);}
+.mat-row:last-child{border-bottom:none;}
+.mat-icon{font-size:1.25rem;width:28px;text-align:center;flex-shrink:0;}
+.mat-name{font-size:0.8rem;font-weight:500;color:var(--text);flex:1;}
+.mat-opt{font-size:0.63rem;color:var(--muted2);margin-top:0.08rem;}
+.mat-upload{display:inline-block;margin-top:0.75rem;padding:0.5rem 0.9rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:0.7rem;color:var(--muted);cursor:pointer;transition:border-color 0.15s;}
+.mat-upload:hover{border-color:#4a7c59;color:var(--accent);}
+.mat-photo{max-width:100%;border-radius:var(--radius-sm);margin-top:0.75rem;display:none;}
+
+/* STEP DESC */
+.step-desc{font-size:0.77rem;color:var(--muted);line-height:1.82;margin-bottom:0.85rem;}
+
+/* INFO BOX */
+.info-toggle{display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.7rem;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg);font-size:0.68rem;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:0.85rem;transition:all 0.15s;width:fit-content;}
+.info-toggle:hover{border-color:#c2d9cb;color:var(--accent);}
+.info-toggle.open{border-color:var(--yellow-border);background:var(--yellow-bg);color:var(--yellow);}
+.info-toggle .it-icon{font-size:0.9rem;}
+.info-panel{display:none;border-radius:var(--radius-sm);overflow:hidden;margin-bottom:0.85rem;}
+.info-panel.open{display:block;}
+.info-section{padding:0.7rem 0.9rem;border-bottom:1px solid rgba(0,0,0,0.05);}
+.info-section:last-child{border-bottom:none;}
+.is-label{display:flex;align-items:center;gap:0.35rem;font-size:0.63rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:0.35rem;}
+.is-text{font-size:0.72rem;line-height:1.78;}
+.info-warum{background:var(--blue-bg);}.info-warum .is-label{color:var(--blue);}  .info-warum .is-text{color:#3a5a7a;}
+.info-temp{background:var(--accent-bg);}.info-temp .is-label{color:var(--accent);} .info-temp .is-text{color:#7a4a1a;}
+.info-exp{background:var(--green-bg);}.info-exp .is-label{color:var(--green);}   .info-exp .is-text{color:#2a5a3a;}
+.info-acht{background:var(--red-bg);} .info-acht .is-label{color:var(--red);}    .info-acht .is-text{color:#7a2a2a;}
+
+/* TIMER */
+.timer-row{display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0.9rem;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border2);margin-bottom:0.85rem;}
+.timer-disp{font-family:'Fraunces',serif;font-size:1.65rem;font-weight:300;color:var(--text);min-width:70px;letter-spacing:0.02em;transition:color 0.2s;}
+.timer-disp.running{color:var(--accent);}
+.timer-disp.finished{color:var(--green);}
+.timer-btn{padding:0.5rem 1.05rem;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:0.7rem;font-weight:500;background:#4a7c59;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:background 0.15s;}
+.timer-btn.running{background:var(--red);}
+.timer-btn.finished{background:var(--green);}
+
+/* STEP NAV */
+.step-nav{display:flex;gap:0.5rem;}
+.step-nav button{padding:0.65rem 1rem;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:0.7rem;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--muted);transition:all 0.15s;flex:1;}
+.step-nav .next-btn{background:#4a7c59;color:#fff;border-color:#4a7c59;}
+
+/* ZOPF DIAGRAM */
+.zopf-wrap{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:0.9rem;margin-bottom:0.85rem;text-align:center;}
+
+
+/* HOME / REZEPTAUSWAHL */
+.home-title{font-family:'Fraunces',serif;font-size:1.55rem;font-weight:300;color:var(--text);margin-bottom:0.25rem;}
+.home-sub{font-size:0.76rem;color:var(--muted);margin-bottom:1rem;}
+.chips{display:flex;gap:0.45rem;overflow-x:auto;margin-bottom:1.1rem;padding-bottom:2px;-webkit-overflow-scrolling:touch;}
+.chip{padding:0.5rem 0.95rem;border:1px solid var(--border);border-radius:999px;background:var(--white);font-family:inherit;font-size:0.74rem;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.rc-card{display:flex;align-items:center;gap:0.85rem;width:100%;text-align:left;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;margin-bottom:0.55rem;box-shadow:var(--shadow);cursor:pointer;font-family:inherit;color:inherit;transition:border-color 0.15s,transform 0.1s;}
+.rc-card:hover{border-color:var(--accent-border);}
+.rc-card:active{transform:scale(0.99);}
+.rc-ico{width:48px;height:48px;border-radius:12px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-size:1.55rem;flex-shrink:0;}
+.rc-body{flex:1;min-width:0;}
+.rc-title{font-size:0.9rem;font-weight:500;color:var(--text);}
+.rc-desc{font-size:0.68rem;color:var(--muted);margin-top:0.12rem;line-height:1.45;}
+.rc-tags{display:flex;gap:0.35rem;margin-top:0.45rem;flex-wrap:wrap;}
+.rc-tag{font-size:0.58rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:999px;padding:0.12rem 0.5rem;}
+.rc-tag.plain{color:var(--muted);background:var(--bg);border-color:var(--border2);text-transform:none;letter-spacing:0;font-weight:500;}
+.rc-chev{color:var(--muted2);font-size:1.3rem;line-height:1;}
+.back-link{display:inline-flex;align-items:center;gap:0.3rem;background:none;border:none;font-family:inherit;font-size:0.76rem;font-weight:500;color:var(--accent);cursor:pointer;padding:0.3rem 0;margin-bottom:0.8rem;}
+.back-link + .section-label{margin-top:0;}
+.warn-box{background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:0.75rem 0.9rem;font-size:0.72rem;color:#7a2a2a;line-height:1.75;margin-bottom:0.85rem;}
+.warn-box strong{color:var(--red);font-weight:600;}
+.nav-btn{font-size:0.78rem;padding:0.8rem 0.4rem;}
+
+footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted2);}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-clar">Clar</span>
+      <span class="logo-back">Back</span>
+      <span class="logo-tag">by Lautini</span>
+    </div>
+  </div>
+</div>
+<div class="nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" data-nav="home" onclick="showPage('home')">Rezepte</button>
+    <button class="nav-btn" data-nav="rechner" onclick="showPage('rechner')">Rechner</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <h1 class="home-title">Was backen wir heute?</h1>
+  <p class="home-sub">Wähle ein Rezept — die App führt dich Schritt für Schritt.</p>
+  <div class="chips" id="home-chips"></div>
+  <div id="home-list"></div>
+</div>
+
+<!-- RECHNER -->
+<div class="page" id="page-rechner">
+  <div class="section-label">Vorteig</div>
+  <div class="card">
+    <div class="vt-grid">
+      <div class="vt-cell"><div class="vc-num" id="vtMehl">100<span class="vc-unit">g</span></div><div class="vc-lbl">Mehl</div></div>
+      <div class="vt-cell"><div class="vc-num" id="vtWasser">100<span class="vc-unit">g</span></div><div class="vc-lbl">Wasser</div></div>
+      <div class="vt-cell"><div class="vc-num" id="vtAnstell">10<span class="vc-unit">g</span></div><div class="vc-lbl">Anstellgut</div></div>
+    </div>
+  </div>
+  <div class="section-label">Parameter</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="rFlourVal">500<small>g</small></span></div><input type="range" id="rFlour" min="300" max="1000" step="50" value="500" oninput="calcRechner()"></div>
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Hydration</span><span class="sl-val" id="rHydVal">80<small>%</small></span></div><input type="range" id="rHyd" min="65" max="95" step="1" value="80" oninput="calcRechner()"></div>
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Salz</span><span class="sl-val" id="rSaltVal">2.0<small>%</small></span></div><input type="range" id="rSalt" min="1.5" max="2.5" step="0.1" value="2.0" oninput="calcRechner()"></div>
+  </div>
+  <div class="section-label">Hauptteig — Zugabe</div>
+  <div class="card">
+    <div class="res-grid">
+      <div class="res-cell hi"><div class="rc-label">Mehl</div><div class="rc-val" id="rMehl">—<span class="rc-unit">g</span></div><div class="rc-sub" id="rMehlS"></div></div>
+      <div class="res-cell hi"><div class="rc-label">Wasser</div><div class="rc-val" id="rWasser">—<span class="rc-unit">g</span></div><div class="rc-sub" id="rWasserS"></div></div>
+      <div class="res-cell"><div class="rc-label">Salz</div><div class="rc-val" id="rSalzRes">—<span class="rc-unit">g</span></div></div>
+      <div class="res-cell"><div class="rc-label">TA</div><div class="rc-val" id="rTA">—</div></div>
+    </div>
+  </div>
+  <div class="section-label">Quellstück (optional)</div>
+  <div class="card">
+    <div class="k-row"><span class="k-name">Sonnenblumenkerne</span><span class="k-factor">×1.0</span><input type="number" class="k-inp" data-factor="1.0" min="0" max="300" value="0"><span class="k-unit">g</span></div>
+    <div class="k-row"><span class="k-name">Leinsamen</span><span class="k-factor">×2.0</span><input type="number" class="k-inp" data-factor="2.0" min="0" max="300" value="0"><span class="k-unit">g</span></div>
+    <div class="k-row"><span class="k-name">Kürbiskerne</span><span class="k-factor">×0.5</span><input type="number" class="k-inp" data-factor="0.5" min="0" max="300" value="0"><span class="k-unit">g</span></div>
+    <div class="k-row"><span class="k-name">Sesam (geröstet)</span><span class="k-factor">×0.5</span><input type="number" class="k-inp" data-factor="0.5" min="0" max="300" value="0"><span class="k-unit">g</span></div>
+    <div class="k-row"><span class="k-name">Haferflocken</span><span class="k-factor">×1.5</span><input type="number" class="k-inp" data-factor="1.5" min="0" max="300" value="0"><span class="k-unit">g</span></div>
+    <div class="quell-row">
+      <div><div class="qr-val" id="qK">0 g</div><div class="qr-lbl">Körner</div></div>
+      <div><div class="qr-val" id="qW">0 g</div><div class="qr-lbl">Einweichwasser</div></div>
+      <div><div class="qr-val" id="qA">0 g</div><div class="qr-lbl">Abzug</div></div>
+    </div>
+    <div class="tip-blue" id="rTip" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ROGGENBROT -->
+<div class="page" id="page-roggen">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="rogFlourVal">500<small>g</small></span></div><input type="range" id="rogFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('roggen')"></div>
+  </div>
+  <div class="section-label">Backgefäss</div>
+  <div class="vessel-chooser">
+    <button class="vessel-btn active" onclick="setVessel('roggen','topf',this)"><span class="vb-icon">🫕</span><div class="vb-name">Gusseisentopf</div><div class="vb-sub">Beste Kruste</div></button>
+    <button class="vessel-btn" onclick="setVessel('roggen','kasten',this)"><span class="vb-icon">🍞</span><div class="vb-name">Kastenform</div><div class="vb-sub">Klassisch</div></button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-roggen" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-roggen-txt">Schritt 1 von 9</span><span class="prog-recipe">Roggenvollkorn</span></div>
+  </div>
+  <div id="steps-roggen"></div>
+</div>
+
+<!-- WEIZENBROT -->
+<div class="page" id="page-weizen">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="weiFlourVal">500<small>g</small></span></div><input type="range" id="weiFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('weizen')"></div>
+  </div>
+  <div class="section-label">Backgefäss</div>
+  <div class="vessel-chooser">
+    <button class="vessel-btn active" onclick="setVessel('weizen','topf',this)"><span class="vb-icon">🫕</span><div class="vb-name">Gusseisentopf</div><div class="vb-sub">Beste Kruste</div></button>
+    <button class="vessel-btn" onclick="setVessel('weizen','kasten',this)"><span class="vb-icon">🍞</span><div class="vb-name">Kastenform</div><div class="vb-sub">Klassisch</div></button>
+    <button class="vessel-btn" onclick="setVessel('weizen','blech',this)"><span class="vb-icon">🫓</span><div class="vb-name">Backblech</div><div class="vb-sub">Rustikaler Laib</div></button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-weizen" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-weizen-txt">Schritt 1 von 9</span><span class="prog-recipe">Weizenbrot</span></div>
+  </div>
+  <div id="steps-weizen"></div>
+</div>
+
+<!-- ZOPF -->
+<div class="page" id="page-zopf">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="zopfFlourVal">500<small>g</small></span></div><input type="range" id="zopfFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('zopf')"></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-zopf" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-zopf-txt">Schritt 1 von 8</span><span class="prog-recipe">CH-Butterzopf</span></div>
+  </div>
+  <div id="steps-zopf"></div>
+</div>
+
+<!-- CIABATTA -->
+<div class="page" id="page-ciabatta">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block">
+      <div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="cFlourVal">750<small>g</small></span></div>
+      <input type="range" id="cFlour" min="500" max="1500" step="50" value="750" oninput="calcCiabatta()">
+    </div>
+    <div class="res-grid" style="margin-top:0.75rem">
+      <div class="res-cell"><div class="rc-label">Brote</div><div class="rc-val" id="cBrote">—</div><div class="rc-sub" id="cBroteSub"></div></div>
+      <div class="res-cell"><div class="rc-label">TA</div><div class="rc-val" id="cTA">—</div></div>
+    </div>
+  </div>
+  <div class="section-label">Poolish — Abend 1 ansetzen</div>
+  <div class="card">
+    <div class="res-grid">
+      <div class="res-cell hi"><div class="rc-label">Mehl</div><div class="rc-val" id="cPM">—<span class="rc-unit">g</span></div></div>
+      <div class="res-cell hi"><div class="rc-label">Wasser</div><div class="rc-val" id="cPW">—<span class="rc-unit">g</span></div></div>
+      <div class="res-cell"><div class="rc-label">Anstellgut</div><div class="rc-val" id="cPA">—<span class="rc-unit">g</span></div></div>
+      <div class="res-cell"><div class="rc-label">Wartezeit</div><div class="rc-val" style="font-size:1rem">8–12<span class="rc-unit">h</span></div></div>
+    </div>
+    <div class="tip-blue" style="margin-top:0.75rem">Mischen, abdecken, <strong>8–12h bei Raumtemperatur</strong>. Poolish ist bereit wenn er blasig aufgegangen ist und in der Mitte leicht einzufallen beginnt.</div>
+  </div>
+  <div class="section-label">Hauptteig — Abend 2</div>
+  <div class="card">
+    <div class="res-grid">
+      <div class="res-cell hi"><div class="rc-label">Mehl</div><div class="rc-val" id="cHM">—<span class="rc-unit">g</span></div></div>
+      <div class="res-cell hi"><div class="rc-label">Wasser</div><div class="rc-val" id="cHW">—<span class="rc-unit">g</span></div></div>
+      <div class="res-cell"><div class="rc-label">Salz</div><div class="rc-val" id="cHS">—<span class="rc-unit">g</span></div></div>
+      <div class="res-cell"><div class="rc-label">Poolish</div><div class="rc-val" style="font-size:1rem">alles</div></div>
+    </div>
+  </div>
+  <div class="section-label">Backgefäss</div>
+  <div class="vessel-chooser">
+    <button class="vessel-btn active" onclick="setVessel('ciabatta','topf',this)"><span class="vb-icon">🫕</span><div class="vb-name">Gusseisentopf</div><div class="vb-sub">Beste Kruste</div></button>
+    <button class="vessel-btn" onclick="setVessel('ciabatta','blech',this)"><span class="vb-icon">🫓</span><div class="vb-name">Backblech</div><div class="vb-sub">Klassisch flach</div></button>
+    <button class="vessel-btn" onclick="setVessel('ciabatta','broetchen',this)"><span class="vb-icon">🥖</span><div class="vb-name">Brötchen</div><div class="vb-sub">6–8 Stück</div></button>
+  </div>
+  <div class="progress-wrap" style="margin-top:1.4rem">
+    <div class="progress-bar"><div class="progress-fill" id="prog-ciabatta" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-ciabatta-txt">Schritt 1 von 8</span><span class="prog-recipe">Sauerteig-Ciabatta</span></div>
+  </div>
+  <div id="steps-ciabatta"></div>
+</div>
+
+<!-- MISCHBROT -->
+<div class="page" id="page-mischbrot">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="misFlourVal">500<small>g</small></span></div><input type="range" id="misFlour" min="300" max="1200" step="50" value="500" oninput="onRecipeFlour('mischbrot')"></div>
+  </div>
+  <div class="section-label">Backgefäss</div>
+  <div class="vessel-chooser">
+    <button class="vessel-btn active" onclick="setVessel('mischbrot','topf',this)"><span class="vb-icon">🫕</span><div class="vb-name">Gusseisentopf</div><div class="vb-sub">Beste Kruste</div></button>
+    <button class="vessel-btn" onclick="setVessel('mischbrot','kasten',this)"><span class="vb-icon">🍞</span><div class="vb-name">Kastenform</div><div class="vb-sub">Klassisch hoch</div></button>
+    <button class="vessel-btn" onclick="setVessel('mischbrot','blech',this)"><span class="vb-icon">🫓</span><div class="vb-name">Backstein/Blech</div><div class="vb-sub">Mit Schwaden</div></button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-mischbrot" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-mischbrot-txt">Schritt 1 von 7</span><span class="prog-recipe">Helles Roggenmischbrot 60/40</span></div>
+  </div>
+  <div id="steps-mischbrot"></div>
+</div>
+
+<!-- LAUGENGEBÄCK -->
+<div class="page" id="page-laugen">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="lauFlourVal">500<small>g</small></span></div><input type="range" id="lauFlour" min="300" max="1500" step="50" value="500" oninput="onRecipeFlour('laugen')"></div>
+    <div class="rc-sub" id="lauInfo" style="margin-top:0.2rem">8 Stück à ca. 100 g Teig</div>
+  </div>
+  <div class="section-label">Form</div>
+  <div class="vessel-chooser">
+    <button class="vessel-btn active" data-v="brezel" onclick="setVessel('laugen','brezel',this)"><span class="vb-icon">🥨</span><div class="vb-name">Brezeln</div><div class="vb-sub">Schwäbisch</div></button>
+    <button class="vessel-btn" data-v="broetchen" onclick="setVessel('laugen','broetchen',this)"><span class="vb-icon">🥯</span><div class="vb-name">Brötchen</div><div class="vb-sub">Rund oder Stange</div></button>
+    <button class="vessel-btn" data-v="brot" onclick="setVessel('laugen','brot',this)"><span class="vb-icon">🍞</span><div class="vb-name">Laugenbrot</div><div class="vb-sub">Ein Laib</div></button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-laugen" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-laugen-txt">Schritt 1 von 9</span><span class="prog-recipe">Laugengebäck</span></div>
+  </div>
+  <div id="steps-laugen"></div>
+</div>
+
+<footer>Clar Back · by Lautini · clar.back.lautini.ch</footer>
+
+<script>
+const timers={};
+const stepState={roggen:0,weizen:0,zopf:0,ciabatta:0,mischbrot:0,laugen:0};
+
+function formatTime(s){const m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0');}
+const vesselState={roggen:'topf',weizen:'topf',laugen:'brezel'};
+
+// INFO STRUCTURE: {warum, temp, exp, acht}
+// warum=Hintergrund, temp=Temperatur/Zeit erklärt, exp=Experimentieren, acht=Achtung
+
+const MATERIALS={
+  roggen:[
+    {icon:'⚖️',name:'Küchenwaage',opt:'Digitalwaage, 1g-Genauigkeit'},
+    {icon:'🥣',name:'Rührschüssel gross',opt:'Für Vorteig und Stockgare'},
+    {icon:'🤖',name:'Knetmaschine',opt:'Oder Teigspatel für Roggen'},
+    {icon:'🍞',name:'Kastenform',opt:'Ca. 25 cm, geölt'},
+    {icon:'🫕',name:'Gusseisentopf (optional)',opt:'Für knusprigere Kruste'},
+    {icon:'🌡️',name:'Ofenthermometer',opt:'Empfohlen — Öfen weichen ab'},
+    {icon:'🔪',name:'Scharfes Messer / Rasierklinge',opt:'Zum Einschneiden'},
+    {icon:'🧊',name:'Kühlschrank',opt:'Für Übernacht-Stückgare'},
+  ],
+  weizen:[
+    {icon:'⚖️',name:'Küchenwaage',opt:'Digitalwaage, 1g-Genauigkeit'},
+    {icon:'🥣',name:'Rührschüssel gross',opt:'Für Stockgare'},
+    {icon:'🤖',name:'Knetmaschine',opt:'Wichtig — Weizen muss geknetet werden'},
+    {icon:'🍞',name:'Kastenform oder Backblech',opt:'Je nach Wahl'},
+    {icon:'🫕',name:'Gusseisentopf (optional)',opt:'Für beste Kruste'},
+    {icon:'💧',name:'Ofenfeste Schale',opt:'Für Dampf bei Kastenform/Blech'},
+    {icon:'🌡️',name:'Ofenthermometer',opt:'Empfohlen'},
+    {icon:'🔪',name:'Scharfes Messer / Rasierklinge',opt:'Zum Einschneiden'},
+  ],
+  zopf:[
+    {icon:'⚖️',name:'Küchenwaage',opt:'Digitalwaage, 1g-Genauigkeit'},
+    {icon:'🤖',name:'Knetmaschine',opt:'Wichtig für Buttereintrag'},
+    {icon:'📐',name:'Backblech mit Backpapier',opt:'Ca. 30×40 cm'},
+    {icon:'🖌️',name:'Backpinsel',opt:'Für Eigelb-Bestreichen'},
+    {icon:'🌡️',name:'Ofenthermometer',opt:'Empfohlen'},
+    {icon:'📏',name:'Teigkarte / Spachtel',opt:'Zum Portionieren'},
+  ]
+};
+
+const RECIPES={
+  roggen:{
+    name:'Roggenvollkorn',
+    steps:[
+      {
+        title:'Vorteig ansetzen', time:'12 h vorher',
+        desc:'Vorteig mischen, abdecken, bei Raumtemperatur stehen lassen. Nach 12 h soll er blasig und leicht aufgegangen sein.',
+        ings:[{a:'100 g',n:'Roggenvollkornmehl',note:'Wird vom Gesamtmehl abgezogen'},{a:'100 g',n:'Wasser, lauwarm',note:'Wird vom Gesamtwasser abgezogen'},{a:'10 g',n:'Anstellgut',note:'Aktiver Roggensauerteig'}],
+        info:{warum:'Der Vorteig — auch Anfrischsauer genannt — gibt dem Sauerteig Zeit, Milch- und Essigsäure aufzubauen. Das ergibt Aroma, bessere Haltbarkeit und macht das Brot bekömmlicher.',temp:'Raumtemperatur 18–22°C: 10–12 h. Kühler (15°C): 14–16 h, milderes Aroma. Wärmer (25°C): 8 h, säuerlicher.',exp:'Mehle mischen: 50g Roggen + 50g Dinkel ergibt einen milderen, leicht nussigen Vorteig. Oder 80g Roggen + 20g Weizen für weniger Säure.',acht:'Zu warm (über 28°C) = übersäuert, Vorteig fällt zusammen. Zu kalt = kaum Aktivität. Vorteig muss blasig sein — wenn nicht, nochmals 2h warten.'}
+      },
+      {
+        title:'Quellstück ansetzen', time:'4–8 h vorher',
+        desc:'Körner mit gleichem Gewicht Wasser bedecken, abdecken, quellen lassen. Einweichwasser kommt mit in den Teig — nichts wegschütten.',
+        ings:[{a:'50 g',n:'Sonnenblumenkerne',note:'10% des Gesamtmehls = ideale Menge'},{a:'50 g',n:'Einweichwasser',note:'Wird vom Hauptteig-Wasser abgezogen'}],
+        info:{warum:'Ungequollene Körner ziehen beim Backen Feuchtigkeit aus der Krume — das macht das Brot trocken und bröselig. Gequollene Körner hingegen geben Feuchtigkeit ab und halten das Brot saftig.',temp:'Raumtemperatur 20°C: 4 h reichen. Im Kühlschrank über Nacht (8–12 h) auch möglich.',exp:'Mischungen: Sonnenblumen + Leinsamen (je 25g) für mehr Omega-3. Kürbiskerne für nussigen Biss. Sesam erst rösten, dann quellen. Max. 20% des Mehls = 100g bei 500g Mehl.',acht:'Leinsamen quellen sehr stark — Faktor ×2 Wasser einplanen. Zu wenig Quellwasser = Körner bleiben hart und kratzen.'}
+      },
+      {
+        title:'Hauptteig mischen', time:'5 min', timerSec:300,
+        desc:'Alle Zutaten in die Knetmaschine. 3–4 min auf niedriger Stufe bis alles verbunden. Roggen braucht kein langes Kneten — es gibt kein Glutennetz.',
+        ings:[{a:'400 g',n:'Roggenvollkornmehl',note:'Gesamtmehl minus Vorteig-Anteil'},{a:'300 g',n:'Wasser',note:'Gesamtwasser minus Vorteig minus Quellstück-Wasser'},{a:'10 g',n:'Salz',note:'2% des Gesamtmehls'},{a:'alles',n:'Vorteig',note:'Vollständig zugeben'}],
+        info:{warum:'Roggen enthält kaum Gluten, dafür Pentosane — schleimige Kohlenhydrate die Wasser binden. Deshalb ist Roggenteig klebrig und formbar ohne Kneten.',temp:'Wassertemperatur: 25–30°C ergibt Teigtemperatur ~26°C — ideal für die Fermentation.',exp:'Mehle mischen: bis 30% Dinkel oder Weizen ergibt eine lockerere Krume. Bei mehr Weizenanteil muss länger geknetet werden (Glutenaufbau). Kümmel oder Fenchel (5g) direkt im Teig.',acht:'Zu viel Wasser: Teig läuft in der Form auseinander. Zu wenig: kompaktes, trockenes Brot. Salz nie direkt auf Anstellgut geben — tötet die Bakterien.'}
+      },
+      {
+        title:'Stockgare', time:'2–3 Stunden', timerSec:9000,
+        desc:'Abdecken, bei 20–22°C gehen lassen bis die Oberfläche leicht rissig wird. Das ist das Zeichen — nicht die Uhr.',
+        ings:[],
+        info:{warum:'In der Stockgare produzieren Bakterien CO₂ das den Teig lockert, und Säuren die Aroma und Haltbarkeit geben. Roggenpentosane stabilisieren den Teig ohne Glutennetz.',temp:'20°C: 2.5–3 h. 25°C: 1.5–2 h. Kühlschrank 5°C: 12–16 h (Retardierung, mehr Aroma). Ziel: ~30% Volumenzunahme.',exp:'Länger = saurer, offenere Krume. Kürzer = milder, kompakter. Kühlschrankgare (Retardierung) ergibt deutlich mehr Aroma und bessere Bekömmlichkeit.',acht:'Übergare: Teig fällt beim Backen zusammen, Brot wird klitschig. Erkennbar wenn Oberfläche stark kollabiert. Lieber 30 min kürzer als zu lang.'}
+      },
+      {
+        title:'Körner unterheben', time:'3 min',
+        desc:'Gequollene Körner mit dem Teigspatel sanft unterheben. Nicht maschinell.',
+        ings:[{a:'50 g + Restwasser',n:'Gequollene Körner',note:'Alles aus der Einweichschüssel'}],
+        info:{warum:'Durch manuelles Unterheben bleibt die Teigstruktur (Gärgase) erhalten. Maschinelles Mischen würde die mühsam aufgebaute Lockerung wieder zunichte machen.',temp:'Körner sollten Raumtemperatur haben — kalte Körner direkt aus dem Kühlschrank verlangsamen die Restfermentation.',exp:'Körner können auch mit Gewürzen kombiniert werden: Kümmel, Koriander, Fenchel direkt zu den Körnern geben.',acht:'Zu viel Rühren = Teig kollabiert. Nur bis die Körner gleichmässig verteilt sind — dann aufhören.'}
+      },
+      {
+        title:'Formen & Stückgare', time:'45–75 min oder Kühlschrank 8–12 h',
+        desc:'Teig mit nassen Händen in geölte Kastenform (oder Topf mit Backpapier). Oberfläche glätten. Abdecken. Raumtemperatur 45–75 min — oder Kühlschrank über Nacht, kalt einschießen.',
+        ings:[],
+        info:{warum:'Die Stückgare ist die letzte Fermentationsphase. Der Teig bekommt seine endgültige Form und baut nochmals Gase auf, die für die Lockerung im Ofen verantwortlich sind.',temp:'Raumtemperatur (22°C): 45–75 min. Kühlschrank (4°C): 8–12 h — kalt einschießen, kein Aufwärmen nötig.',exp:'Kühlschrankgare empfohlen: mehr Aroma, flexibler Zeitplan, besserer Ofentrieb. Topf: Oberfläche mit nassem Finger einschneiden oder einritzen.',acht:'Übergare in der Stückgare ist das häufigste Problem — Brot fällt im Ofen zusammen. Lieber etwas untergärt einschießen (Teig federt beim Drücken noch zurück).'}
+      },
+      {
+        title:'Einschneiden & Backen', time:'~55 min', timerSec:3300,
+        desc_topf:'Ofen mit Topf auf 250°C vorheizen (min. 30 min). Teig mit Backpapier in heissen Topf heben. Deckel drauf. 20 min bei 250°C mit Deckel. Deckel ab, 30–35 min bei 210°C bis dunkelbraun.',
+        desc_kasten:'Ofen auf 250°C vorheizen. Teig in Kastenform längs einschneiden (1 cm tief, ein Zug). Kalt einschießen. 10 min bei 250°C. Dann auf 200°C, weitere 40–45 min. Klopftest: hohl = fertig.',
+        ings:[],
+        info:{warum:'Hohe Anfangshitze erzeugt den Ofentrieb — das schnelle Aufgehen am Anfang. Der Dampf (Topfdeckel oder Wassereinschuss) hält die Oberfläche feucht, sodass das Brot aufgehen kann ohne zu reissen.',temp:'250°C erste Phase: maximaler Ofentrieb. 200–210°C zweite Phase: Krume gar, Kruste karamellisiert. Topf: 20 min Deckel = Dampfphase. Dann offen = Krustenphase.',exp:'Temperatur 10°C höher = dunklere, knusprigere Kruste. Länger bei niedriger Temp = dickere Kruste. Im Topf wird die Kruste fast immer besser als in der Kastenform.',acht:'Zu helle Kruste = Brot noch nicht durch (Kerntemperatur <96°C). Ofen zu kalt = kein Ofentrieb, flaches Brot. Topf MUSS im Ofen vorgeheizt werden — sonst klebt der Teig an.'}
+      },
+      {
+        title:'Auskühlen', time:'2–4 Stunden', timerSec:7200,
+        desc:'Auf Gitter legen. Nicht anschneiden vor dem vollständigen Auskühlen — Krume zieht Feuchtigkeit aus dem Innern nach. Am nächsten Tag noch besser.',
+        ings:[],
+        info:{warum:'Im heissen Brot ist die Krume noch weich und feucht. Beim Auskühlen verdampft überschüssige Feuchtigkeit durch die Kruste — das "Nachbacken". Zu früh anschneiden = klitschige, feuchte Krume.',temp:'Mindestens 2 h, besser 4 h. Kerntemperatur muss unter 30°C sinken.',exp:'Roggenbrot in Bienenwachstuch einwickeln: bleibt 5–7 Tage frisch. Im Kühlschrank trocknet es aus — Zimmertemperatur ist besser.',acht:'Nie in Plastikbeutel einwickeln solange noch warm — Kondenswasser macht die Kruste weich.'}
+      },
+    ]
+  },
+  weizen:{
+    name:'Weizenbrot',
+    steps:[
+      {
+        title:'Hefe auflösen', time:'2 min',
+        desc:'Frischhefe in lauwarmes Wasser (35°C) einrühren bis aufgelöst.',
+        ings:[{a:'7 g',n:'Frischhefe',note:'Oder 2g Trockenhefe'},{a:'340 g',n:'Wasser, 35°C',note:'Nicht heisser — tötet die Hefe'}],
+        info:{warum:'Frischhefe ist aktiv und braucht ~35°C Aktivierungstemperatur. In kaltem Wasser arbeitet sie zu langsam, in zu heissem Wasser stirbt sie ab.',temp:'35°C ist ideal. Unter 20°C: sehr langsame Aktivierung. Über 45°C: Hefe stirbt. Testtipp: Wasser soll sich am Handgelenk angenehm warm anfühlen.',exp:'Trockenhefe (2g) hat die gleiche Triebkraft wie 7g Frischhefe. Noch weniger Hefe (3g Frisch) + länger gehen lassen = mehr Aroma, langsamere Fermentation.',acht:'Hefe und Salz nie direkt zusammenmischen — Salz tötet die Hefe. Immer getrennt in den Teig geben.'}
+      },
+      {
+        title:'Teig kneten', time:'10–12 min', timerSec:720,
+        desc:'Alle Zutaten in die Knetmaschine. 3 min Stufe 1. Dann Stufe 2, 8–9 min bis der Teig glatt ist, sich vom Rand löst und den Fenstertest besteht: dünn ausziehbar ohne zu reissen.',
+        ings:[{a:'500 g',n:'Weizenmehl 550 (CH: Weissmehl)',note:''},{a:'50 g',n:'Sauerteig',note:'Roggen- oder Weizensauer — Aroma'},{a:'10 g',n:'Salz',note:'2% von 500g'},{a:'alles',n:'Hefewasser aus Schritt 1',note:''}],
+        info:{warum:'Kneten entwickelt das Glutennetz — ein elastisches Proteinnetz das CO₂-Gase hält und dem Brot Struktur gibt. Roggenteig hat kein Gluten, Weizenteig schon — deshalb muss er wirklich geknetet werden.',temp:'Teigtemperatur nach dem Kneten: ideal 24–26°C. Wärmeres Kneten (längere Maschine) = wärmerer Teig = schnellere Gare.',exp:'Mehr Sauerteig (100g) = mehr Aroma, etwas kompaktere Krume. Mehlmischung: 80% 550 + 20% Ruchmehl ergibt mehr Aroma. Vollkornanteil bis 30% möglich — mehr Wasser nötig.',acht:'Unterknetung (< 8 min Stufe 2) = Brot reisst unkontrolliert auf, flache Krume. Überknetung (>15 min) = Gluten kollabiert, klebrig. Fenstertest ist der zuverlässigste Check.'}
+      },
+      {
+        title:'Stockgare', time:'60–90 min', timerSec:5400,
+        desc:'Teig in geölte Schüssel, abdecken. Bei 22°C ca. 90 min bis verdoppelt. Bei 25°C ab 60 min kontrollieren.',
+        ings:[],
+        info:{warum:'Hefe produziert CO₂ das das Glutennetz dehnt. Gleichzeitig bauen Enzyme Stärke ab — das gibt Aroma. Sauerteig-Bakterien arbeiten auch, aber langsamer als die Hefe.',temp:'22°C: 90 min. 25°C: 60 min. 18°C: 120 min. Kühlschrank 5°C: 8–12 h (Retardierung, deutlich mehr Aroma).',exp:'Retardierung im Kühlschrank nach dem Formen empfohlen: heute Abend formen, morgen früh backen. Ergibt bessere Kruste und mehr Geschmack.',acht:'Übergare: Teig fällt beim Einschießen zusammen. Test: Finger 1 cm tief eindrücken — Delle springt langsam zurück = perfekt. Springt sofort zurück = untergärt. Bleibt: übergärt.'}
+      },
+      {
+        title:'Formen', time:'5 min',
+        desc:'Auf leicht bemehlter Fläche sanft falten und zu einem Laib formen. Nicht zu stark entgasen. In Kastenform mit Backpapier oder Topf.',
+        ings:[],
+        info:{warum:'Formen schafft Oberflächenspannung — die "Haut" des Laibs, die beim Backen für eine gleichmässige Form sorgt. Zu viel Entgasen zerstört die mühsam aufgebaute Struktur.',temp:'Teig sollte Raumtemperatur haben. Kalter Teig aus dem Kühlschrank ist steifer und lässt sich besser formen.',exp:'Langwirken für Kastenform: Teig flach drücken, von allen Seiten zur Mitte falten, umdrehen, mit den Händen zu einer festen Rolle formen.',acht:'Zu viel Mehl beim Formen = Mehlschichten im Brot. Zu wenig Spannung = Brot läuft breit. Nasse Hände sind besser als bemehlte für feuchte Teige.'}
+      },
+      {
+        title:'Stückgare', time:'60 min oder Kühlschrank', timerSec:3600,
+        desc:'Abdecken. Raumtemperatur ~60 min bis Teig sichtbar aufgegangen ist. Oder Kühlschrank 8–12 h und kalt einschießen.',
+        ings:[],
+        info:{warum:'Letzte Gärphase: der Laib entspannt, geht auf und baut Gase auf für den Ofentrieb. Kalt gegarte Teiglinge haben besseren Ofentrieb und eine schönere Kruste.',temp:'Raumtemperatur 22°C: 60 min. Kühlschrank 4°C: 8–12 h.',exp:'Gärkörbchen (Banneton) mit Roggenmehl bestäuben für schönes Muster. Leinentuch als Ersatz funktioniert genauso.',acht:'Übergare in der Stückgare ist häufig bei Weizenteig. Drücktest (s. Stockgare). Kalt eingegarte Teiglinge (Kühlschrank) sind weniger empfindlich.'}
+      },
+      {
+        title:'Ofen vorheizen', time:'30 min', timerSec:1800,
+        desc_topf:'Topf im Ofen auf 250°C vorheizen. Mindestens 30 min — der Topf muss wirklich heiss sein.',
+        desc_kasten:'Ofen auf 230°C vorheizen. Ofenfeste Schale auf den Boden stellen.',
+        desc_blech:'Ofen auf 230°C vorheizen. Backblech auf mittlerer Schiene mitvorheizen. Ofenfeste Schale auf den Boden.',
+        ings:[],
+        info:{warum:'Ein heisser Topf oder Stein überträgt sofort Wärme auf den Teigling — das gibt maximalen Ofentrieb. Kalte Form = kein Ofentrieb = flaches Brot.',temp:'250°C Topf: optimal. 230°C Kastenform: Anfangshitze mit Dampf. Der Ofen braucht länger als er anzeigt — immer Ofenthermometer nutzen.',exp:'Je heisser der Start, desto besser der Trieb. Profibäcker nutzen 280–300°C. Im Haushaltsofen ist 250°C das Maximum.',acht:'Topf ohne Vorheizen = Teig klebt am Boden. Griffflächen mit Ofenhandschuh schützen — Topf ist extrem heiss.'}
+      },
+      {
+        title:'Einschneiden & Backen', time:'40–45 min', timerSec:2400,
+        desc_topf:'Teig mit Backpapier-Schlinge in heissen Topf heben. Deckel drauf. 20 min bei 250°C. Deckel ab, 20–25 min bei 210°C bis goldbraun.',
+        desc_kasten:'Teig einschneiden. Einschießen, sofort Tasse heisses Wasser in Schale. 15 min 230°C mit Dampf. Schale raus, auf 200°C, 25 min.',
+        desc_blech:'Teig auf heisses Blech mit Backpapier. Einschneiden. Sofort Dampf (Wasserschale). 15 min 230°C. Dampf ablassen, 20 min 200°C.',
+        ings:[],
+        info:{warum:'Dampf hält die Teigoberfläche feucht und elastisch — das Brot kann aufgehen ohne zu reissen. Ohne Dampf bildet sich zu früh eine Kruste die den Ofentrieb blockiert. Topfdeckel erzeugt automatisch Dampf.',temp:'250°C + Dampf: maximaler Ofentrieb + glänzende Kruste. 200–210°C nach Dampf: Krume gar backen, Kruste karamellisieren.',exp:'Länger mit Deckel (25 min) = weichere Kruste. Kürzer (15 min) = knusprigere Kruste. Sehr dunkle Kruste (fast schwarz am Boden) = maximaler Geschmack.',acht:'Einschnitt vergessen = unkontrolliertes Aufreissen. Dampf nicht zu früh ablassen. Brot nicht zu früh herausnehmen — Kerntemperatur muss 96°C erreichen.'}
+      },
+      {
+        title:'Auskühlen', time:'Mindestens 45 min', timerSec:2700,
+        desc:'Aus der Form auf Gitter. Kruste knuspert beim Abkühlen nach. Frühestens nach 45 min anschneiden.',
+        ings:[],
+        info:{warum:'Die Kruste ist direkt nach dem Backen noch weich — sie zieht beim Abkühlen Feuchtigkeit aus dem Innern und wird so knusprig. Das ist der Grund für das "Knistern" frischer Brote.',temp:'45 min Mindest-Auskühlung für Weizenbrot. Bei Roggen 2–4 h wegen der höheren Feuchtigkeit.',exp:'Brot auf einem Rost auskühlen, nicht auf einer Fläche — so kann Dampf von unten entweichen und die Unterseite bleibt knusprig.',acht:'Plastikbeutel zu früh = weiche Kruste. Brot in Leinentuch oder Papiertüte aufbewahren.'}
+      },
+    ]
+  },
+  zopf:{
+    name:'CH-Butterzopf',
+    steps:[
+      {
+        title:'Material & Mise en Place', time:'5 min',
+        desc:'Alle Zutaten und Materialien bereitstellen. Butter rechtzeitig aus dem Kühlschrank nehmen.',
+        material:'zopf',
+        ings:[],
+        info:{warum:'Mise en Place ("alles an seinem Platz") ist die erste Regel der Bäckerei. Kalte Butter lässt sich nicht in den Teig einarbeiten — das wäre der häufigste Fehler beim Zopf.',temp:'Butter muss Raumtemperatur haben (20°C) — sie soll sich mit dem Finger eindrücken lassen aber nicht schmelzen.',exp:'Qualitäts-Butter macht den Unterschied: Alpenbutter oder Rohmilchbutter geben mehr Geschmack als Standard-Butter.',acht:'Kalte Butter = sie schmiert den Teig, statt sich einzuarbeiten. Dann reisst der Teig und wird fleckig.'}
+      },
+      {
+        title:'Hefe aktivieren', time:'5 min', timerSec:300,
+        desc:'Hefe in lauwarmer Milch mit Zucker auflösen. 5 min stehen lassen bis schaumig.',
+        ings:[{a:'7 g',n:'Frischhefe',note:'Oder 2g Trockenhefe'},{a:'300 g',n:'Vollmilch, 35°C',note:'Fettige Milch ergibt saftigeren Zopf'},{a:'1 TL',n:'Zucker',note:'Futter für die Hefe — aktiviert sie schneller'}],
+        info:{warum:'Milch gibt dem Zopf Fett, Proteine und Milchzucker — das ergibt die charakteristische weiche, wolkige Krume und die goldene Farbe beim Backen.',temp:'Milch 35°C: Hefe wird in 5 min aktiv (Schaum sichtbar). Kalt: kaum Aktivierung. Zu heiss: Hefe stirbt.',exp:'Halbmilch / Halbrahm (50/50): noch sahnigerer Zopf. Mandelmilch oder Hafermilch funktionieren als vegane Variante, Ergebnis ist etwas weniger fluffig.',acht:'Wenn nach 10 min kein Schaum: Hefe ist tot — neu ansetzen. Alten Zopf-Teig ohne aktive Hefe nicht weiterverwenden.'}
+      },
+      {
+        title:'Teig kneten', time:'12 min', timerSec:720,
+        desc:'Mehl, Sauerteig, Salz, Ei, Hefemilch in Knetmaschine. 3 min Stufe 1. Dann Butter in kleinen Stücken zugeben — Stufe 2, 8–9 min bis glatt und glänzend. Fenstertest: hauchdünn ausziehbar.',
+        ings:[{a:'500 g',n:'Weizenmehl 550 (CH: Weissmehl)',note:''},{a:'30 g',n:'Sauerteig',note:'Optional — gibt feines Aroma'},{a:'8 g',n:'Salz (ca. 1 TL)',note:''},{a:'1',n:'Ei, Grösse M',note:'Macht die Krume reich und goldgelb'},{a:'80 g',n:'Butter, weich',note:'Stückweise während dem Kneten zugeben'},{a:'alles',n:'Hefemilch aus Schritt 2',note:''}],
+        info:{warum:'Butter wird nach dem Glutenaufbau eingeknetet — das nennt sich "Détrempe + Beurrage". Würde man die Butter von Anfang an zugeben, würde sie das Glutennetz umhüllen und den Aufbau verhindern.',temp:'Teig nach dem Kneten: 24–26°C. Zu warm = Butter schmilzt, Teig ölig. Zu kalt = Butter bricht das Glutennetz.',exp:'Mehr Butter (100g) = noch weicherer, brioche-artiger Zopf. 10% Dinkelmehl geben nussiges Aroma. Zitronenabrieb (1 TL) ist eine klassische CH-Variante.',acht:'Butter zu früh zugeben = Glutennetz wird nie aufgebaut, Zopf reisst beim Flechten. Butter stückweise eingeben, warten bis sie eingearbeitet ist.'}
+      },
+      {
+        title:'Stockgare', time:'60–90 min', timerSec:5400,
+        desc:'Teig in geölte Schüssel, abdecken. Bei 22°C bis verdoppelt. Oder Kühlschrank über Nacht für mehr Butteraroma.',
+        ings:[],
+        info:{warum:'Hefe produziert CO₂ und Aromastoffe. Im Butterteig läuft die Gare etwas langsamer als in fettemfreien Teigen — das Fett verlangsamt die Hefe leicht.',temp:'22°C: 60–90 min. 25°C: 45–60 min. Kühlschrank 4°C: 8–12 h (Retardierung — empfohlen für maximales Aroma).',exp:'Overnight-Retardierung ist die Profi-Methode: Teig heute abend machen, morgen früh flechten und backen. Ergibt deutlich aromatischeren Zopf.',acht:'Übergarung bei Butter-Teig passiert schnell bei Wärme. Teig nicht in warmer Küche (über 26°C) gären lassen.'}
+      },
+      {
+        title:'Portionieren & Rollen', time:'15 min',
+        desc:'Teig in 3 gleiche Stücke teilen (je ca. 295–300g). Jedes Stück zu einer Rolle von 40–45 cm Länge rollen — Mitte etwas dicker als Enden.',
+        ings:[],
+        info:{warum:'Gleich grosse Stränge ergeben einen symmetrischen Zopf. Die dickere Mitte gleicht aus, dass die Enden beim Flechten stärker gedehnt werden.',temp:'Teig Raumtemperatur: gut rollbar. Zu kalt: bricht. Zu warm: klebt.',exp:'4-Strang-Zopf: 4 Rollen, komplexeres Muster, prächtiger. 2-Strang-Zopf: einfacher, für Erstversuche.',acht:'Rollen mit zu viel Mehl = Mehlschichten sichtbar nach dem Backen. Rollen, die in der Mitte aufreissen = Teig zu kalt oder Glutennetz schwach (zu wenig geknetet).'},
+        zopfDiagram:true
+      },
+      {
+        title:'Flechten & Stückgare', time:'45–60 min', timerSec:3000,
+        desc:'3 Stränge oben zusammendrücken und flechten: Mitte über links → Mitte über rechts → wiederholen bis zum Ende. Enden fest andrücken und unter den Zopf legen. Auf Backblech mit Backpapier. Abdecken, 45–60 min bis deutlich aufgegangen.',
+        ings:[],
+        info:{warum:'Das Flechten erzeugt die charakteristische Oberfläche mit vielen Flächen — das ergibt mehr Kruste pro Scheibe und das typische Aroma. Die Stückgare gibt dem Zopf sein Volumen.',temp:'22°C: 45–60 min. Nicht übergären — Zopf soll noch Spannung haben.',exp:'Doppelter Zopf: zwei 3-Strang-Zöpfe übereinander legen für mehr Höhe. Gefüllter Zopf: Nuss-Zimt-Füllung einrollen, dann flechten.',acht:'Zu fest flechten = Zopf reisst auf. Zu locker = Stränge trennen sich. Die richtige Spannung: Stränge liegen eng aneinander aber werden nicht gequetscht.'}
+      },
+      {
+        title:'Bestreichen & Backen', time:'35 min', timerSec:2100,
+        desc:'Ofen auf 200°C vorheizen. Zopf 2× mit Eigelb-Milch bestreichen (zweites Mal nach 10 min). Auf mittlerer Schiene 30–35 min bis tief goldbraun. Lieber 2 min länger als zu hell.',
+        ings:[{a:'1',n:'Eigelb',note:''},{a:'1 EL',n:'Milch',note:'Mit Eigelb verquirlen — für glänzende Oberfläche'}],
+        info:{warum:'Eigelb-Milch karamellisiert bei 160–180°C und ergibt die glänzende, tiefbraune Oberfläche. Zweimaliges Bestreichen = gleichmässigerer Glanz.',temp:'200°C Umluft oder 210°C Ober-/Unterhitze. Zu heiss (220°C+) = Oberfläche verbrennt, Inneres roh. Kerntemperatur fertig: 88–92°C.',exp:'Mohn oder Sesam nach dem zweiten Bestreichen aufstreuen. Höhe der Temperatur beeinflusst die Bräune stark — mit Ofenthermometer prüfen.',acht:'Zu helle Kruste = Zopf innen noch teigig (typischer Fehler). Folie drauflegen wenn Oberfläche zu dunkel wird. Niemals unter 28 min herausnehmen.'}
+      },
+      {
+        title:'Auskühlen', time:'30 min', timerSec:1800,
+        desc:'Auf Gitter mindestens 30 min auskühlen. Frisch essen — oder am nächsten Tag 5 min bei 160°C aufbacken.',
+        ings:[],
+        info:{warum:'Der Zopf ist direkt aus dem Ofen innen noch etwas feucht und weich. Beim Abkühlen zieht die Butter zurück in die Krume und der Zopf bekommt seine richtige Textur.',temp:'30 min auf Gitter reichen. Zopf kann noch leicht warm gegessen werden — das ist der beste Zeitpunkt.',exp:'Reste einfrieren (in Scheiben): direkt aus der Tiefkühle 5 min toasten. Schmeckt fast wie frisch.',acht:'Warm in Plastik verpacken = Kondensation, weiche Kruste. In Leinentuch einschlagen wenn noch leicht warm.'}
+      },
+    ]
+  }
+};
+
+const recipeFlour={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500};
+
+const FLOUR_ID_PREFIX={roggen:'rog',weizen:'wei',zopf:'zopf',mischbrot:'mis',laugen:'lau'};
+let recipeRenderTimer={};
+function onRecipeFlour(key){
+  const prefix=FLOUR_ID_PREFIX[key];
+  const val=parseInt(document.getElementById(prefix+'Flour').value);
+  recipeFlour[key]=val;
+  const labelEl=document.getElementById(prefix+'FlourVal');
+  if(labelEl)labelEl.innerHTML=val+'<small>g</small>';
+  if(recipeRenderTimer[key])clearTimeout(recipeRenderTimer[key]);
+  recipeRenderTimer[key]=setTimeout(()=>renderRecipe(key),300);
+}
+
+// Scale a gram-amount string by factor, return scaled string
+function scaleAmt(amtStr,factor){
+  if(Math.abs(factor-1)<0.01)return amtStr;
+  // Match leading number optionally followed by space and unit
+  const m=amtStr.match(/^(\d+(?:\.\d+)?)(.*)/);
+  if(!m)return amtStr; // 'alles', 'alles' etc — return unchanged
+  const scaled=Math.round(parseFloat(m[1])*factor);
+  return scaled+m[2];
+}
+
+function scaleIngs(ings,factor){
+  if(Math.abs(factor-1)<0.01)return ings;
+  return ings.map(ing=>{
+    if(ing.noScale)return ing;
+    const scaled=scaleAmt(ing.a,factor);
+    // Also scale note references if they contain gram numbers
+    return{...ing,a:scaled};
+  });
+}
+
+
+function getTimerSec(step,key){
+  const v=vesselState[key];
+  return (step.timers&&step.timers[v])||step.timerSec;
+}
+
+function notifyDone(){
+  try{
+    if('Notification' in window&&Notification.permission==='granted')new Notification('Clar Back',{body:'Timer fertig!'});
+    if(navigator.vibrate)navigator.vibrate([200,100,200]);
+  }catch(e){}
+}
+
+function tickTimer(tid){
+  const t=timers[tid];if(!t||!t.running)return;
+  const disp=document.getElementById('td-'+tid),btn=document.getElementById('tb-'+tid);
+  t.remaining=Math.max(0,Math.round((t.endAt-Date.now())/1000));
+  if(disp)disp.textContent=formatTime(t.remaining);
+  if(t.remaining<=0){
+    clearInterval(t.interval);t.running=false;
+    if(disp){disp.textContent='Fertig ✓';disp.classList.remove('running');disp.classList.add('finished');}
+    if(btn){btn.textContent='✓ Fertig';btn.classList.remove('running');btn.classList.add('finished');}
+    notifyDone();
+  }
+}
+
+function toggleTimer(tid,totalSec){
+  const disp=document.getElementById('td-'+tid),btn=document.getElementById('tb-'+tid);
+  if(!disp||!btn)return;
+  let t=timers[tid];
+  if(t&&t.running){
+    clearInterval(t.interval);
+    t.remaining=Math.max(0,Math.round((t.endAt-Date.now())/1000));
+    t.running=false;
+    btn.textContent='Weiter';btn.classList.remove('running');disp.classList.remove('running');
+    return;
+  }
+  if(!t||t.remaining<=0){t=timers[tid]={remaining:totalSec};disp.classList.remove('finished');btn.classList.remove('finished');}
+  t.running=true;
+  t.endAt=Date.now()+t.remaining*1000;
+  btn.textContent='Stopp';btn.classList.add('running');disp.classList.add('running');
+  // Elemente werden bei jedem Tick neu gesucht: renderRecipe() baut das DOM neu auf.
+  t.interval=setInterval(()=>tickTimer(tid),500);
+  try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();}catch(e){}
+}
+
+function toggleInfo(id){
+  const btn=document.getElementById('ib-'+id),panel=document.getElementById('ip-'+id);
+  if(!btn||!panel)return;
+  const open=panel.classList.contains('open');
+  panel.classList.toggle('open',!open);
+  btn.classList.toggle('open',!open);
+  btn.querySelector('.it-label').textContent=open?'Info & Hintergrund':'Info schliessen';
+}
+
+const ZOPF_SVG=`<svg viewBox="0 0 300 90" xmlns="http://www.w3.org/2000/svg">
+  <text x="150" y="12" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#8a8178">3-Strang Flechtmuster</text>
+  <g stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M15,32 C50,32 55,52 95,52 C135,52 135,32 170,32 C205,32 210,52 250,52 C268,52 280,48 285,46" stroke="#c17f3a" opacity="0.9"/>
+    <path d="M15,47 C50,47 55,28 95,28 C135,28 135,67 170,67 C205,67 210,47 250,47 C268,47 280,50 285,51" stroke="#e8b87a" opacity="0.85"/>
+    <path d="M15,62 C50,62 55,62 95,62 C135,62 135,42 170,42 C205,42 210,62 250,62 C268,62 280,58 285,56" stroke="#f5d4a0" opacity="0.8"/>
+  </g>
+  <text x="150" y="84" text-anchor="middle" font-family="Inter,sans-serif" font-size="7.5" fill="#b5afa7">Mitte über links → Mitte über rechts → wiederholen</text>
+</svg>`;
+
+function buildInfoHTML(info,id){
+  if(!info)return'';
+  return`<button class="info-toggle" id="ib-${id}" onclick="toggleInfo('${id}')"><span class="it-icon">ℹ️</span><span class="it-label">Info & Hintergrund</span></button>
+  <div class="info-panel" id="ip-${id}">
+    ${info.warum?`<div class="info-section info-warum"><div class="is-label">💡 Warum</div><div class="is-text">${info.warum}</div></div>`:''}
+    ${info.temp?`<div class="info-section info-temp"><div class="is-label">🌡️ Temperatur & Zeit</div><div class="is-text">${info.temp}</div></div>`:''}
+    ${info.exp?`<div class="info-section info-exp"><div class="is-label">🧪 Experimentieren</div><div class="is-text">${info.exp}</div></div>`:''}
+    ${info.acht?`<div class="info-section info-acht"><div class="is-label">⚠️ Achtung</div><div class="is-text">${info.acht}</div></div>`:''}
+  </div>`;
+}
+
+function buildMaterialHTML(key){
+  const mats=MATERIALS[key];
+  if(!mats)return'';
+  const rows=mats.map(m=>`<div class="mat-row"><span class="mat-icon">${m.icon}</span><div><div class="mat-name">${m.name}</div><div class="mat-opt">${m.opt}</div></div></div>`).join('');
+  return`<div class="ing-block" style="margin-bottom:0.85rem">${rows}</div>
+  <label class="mat-upload" for="matphoto-${key}">📷 Foto deines Setups hochladen (optional)</label>
+  <input type="file" id="matphoto-${key}" accept="image/*" style="display:none" onchange="showMatPhoto(this,'matimg-${key}')">
+  <img id="matimg-${key}" class="mat-photo" alt="Material">`;
+}
+
+function showMatPhoto(input,imgId){
+  const img=document.getElementById(imgId);
+  if(!img||!input.files||!input.files[0])return;
+  const reader=new FileReader();
+  reader.onload=e=>{img.src=e.target.result;img.style.display='block';};
+  reader.readAsDataURL(input.files[0]);
+}
+
+function getDesc(step,key){
+  const v=vesselState[key]||'topf';
+  const raw=step['desc_'+v]||step.desc||'';
+  return raw.replace(/\{n\}/g,Math.round((recipeFlour[key]||500)/500*8));
+}
+
+function renderRecipe(key){
+  const recipe=RECIPES[key],container=document.getElementById('steps-'+key);
+  if(!container)return;
+  container.innerHTML='';
+  const total=recipe.steps.length;
+  // Scaling factor vs base 500g for roggen/weizen/zopf; ciabatta manages its own
+  const BASE={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500};
+  const factor=(recipeFlour[key]&&BASE[key])?recipeFlour[key]/BASE[key]:1;
+  recipe.steps.forEach((step,i)=>{
+    const isDone=i<stepState[key],isActive=i===stepState[key];
+    const div=document.createElement('div');
+    div.className='step'+(isActive?' active':'')+(isDone?' done':'');
+    div.id='step-'+key+'-'+i;
+    const scaledIngs=scaleIngs(step.ings||[],factor);
+    let ingsHtml='';
+    try{
+      ingsHtml=scaledIngs.length?'<div class="ing-block">'+scaledIngs.map(ing=>`<div class="ing-row"><span class="ir-amount">${ing.a}</span><div class="ir-right"><div class="ir-name">${ing.n}</div>${ing.note?`<div class="ir-note">${ing.note}</div>`:''}</div></div>`).join('')+'</div>':'';
+    }catch(e){ingsHtml='';}
+    const matHtml=step.material?buildMaterialHTML(step.material):'';
+    const tid=key+'-'+i;
+    const tsec=getTimerSec(step,key);
+    const remaining=timers[tid]?timers[tid].remaining:tsec;
+    const isRunning=timers[tid]&&timers[tid].running,isDoneTimer=timers[tid]&&timers[tid].remaining<=0;
+    const timerHtml=tsec?`<div class="timer-row"><div class="timer-disp${isRunning?' running':isDoneTimer?' finished':''}" id="td-${tid}">${isDoneTimer?'Fertig ✓':formatTime(remaining||tsec)}</div><button class="timer-btn${isRunning?' running':isDoneTimer?' finished':''}" id="tb-${tid}" onclick="toggleTimer('${tid}',${tsec})">${isRunning?'Stopp':isDoneTimer?'✓ Fertig':'Start'}</button></div>`:'';
+    const warnHtml=step.warn?`<div class="warn-box">${step.warn}</div>`:'';
+    const zopfHtml=step.zopfDiagram?`<div class="zopf-wrap">${ZOPF_SVG}</div>`:'';
+    const infoHtml=buildInfoHTML(step.info,tid);
+    const isLast=i===total-1;
+    div.innerHTML=`
+      <div class="step-header" onclick="goStep('${key}',${i})">
+        <div class="step-num">${isDone?'✓':(i+1)}</div>
+        <div class="step-title">${step.title}</div>
+        ${step.time?`<div class="step-time">${step.time}</div>`:''}
+      </div>
+      <div class="step-body">
+        ${warnHtml}${ingsHtml}${matHtml}
+        ${zopfHtml}
+        <div class="step-desc">${getDesc(step,key)}</div>
+        ${timerHtml}
+        ${infoHtml}
+        <div class="step-nav">
+          ${i>0?`<button onclick="goStep('${key}',${i-1})">← Zurück</button>`:'<div></div>'}
+          <button class="next-btn" style="${isLast?'background:var(--green);border-color:var(--green)':''}" onclick="goStep('${key}',${isLast?0:i+1})">${isLast?'Neu starten 🍞':'Weiter →'}</button>
+        </div>
+      </div>`;
+    container.appendChild(div);
+  });
+  const pct=Math.round((stepState[key]/total)*100);
+  const pf=document.getElementById('prog-'+key),pt=document.getElementById('prog-'+key+'-txt');
+  if(pf)pf.style.width=pct+'%';
+  if(pt)pt.textContent='Schritt '+(stepState[key]+1)+' von '+total;
+  if(key==='laugen')updateLaugenInfo();
+}
+
+function goStep(key,i){
+  stepState[key]=i;renderRecipe(key);
+  setTimeout(()=>{const el=document.getElementById('step-'+key+'-'+i);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},50);
+}
+
+function setVessel(key,vessel,btn){
+  vesselState[key]=vessel;
+  btn.closest('.vessel-chooser').querySelectorAll('.vessel-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRecipe(key);
+}
+
+function calcRechner(){
+  const totalMehl=parseInt(document.getElementById('rFlour').value);
+  const hyd=parseInt(document.getElementById('rHyd').value);
+  const saltPct=parseFloat(document.getElementById('rSalt').value);
+  document.getElementById('rFlourVal').innerHTML=totalMehl+'<small>g</small>';
+  document.getElementById('rHydVal').innerHTML=hyd+'<small>%</small>';
+  document.getElementById('rSaltVal').innerHTML=saltPct.toFixed(1)+'<small>%</small>';
+  // Vorteig: 20% des Gesamtmehls
+  const vtM=Math.round(totalMehl*0.20);
+  const vtW=vtM; // 100% Hydration
+  const vtA=Math.round(totalMehl*0.02);
+  document.getElementById('vtMehl').innerHTML=vtM+'<span class="vc-unit">g</span>';
+  document.getElementById('vtWasser').innerHTML=vtW+'<span class="vc-unit">g</span>';
+  document.getElementById('vtAnstell').innerHTML=vtA+'<span class="vc-unit">g</span>';
+  let qK=0,qW=0;
+  document.querySelectorAll('.k-inp').forEach(inp=>{const g=parseFloat(inp.value)||0;qK+=g;qW+=Math.round(g*parseFloat(inp.dataset.factor));});
+  document.getElementById('qK').textContent=qK+' g';document.getElementById('qW').textContent=qW+' g';document.getElementById('qA').textContent=qW+' g';
+  const hM=totalMehl-vtM,tW=Math.round(totalMehl*hyd/100),hW=tW-vtW-qW,sG=Math.round(totalMehl*saltPct/100*10)/10;
+  document.getElementById('rMehl').innerHTML=hM+'<span class="rc-unit">g</span>';
+  document.getElementById('rWasser').innerHTML=Math.max(0,hW)+'<span class="rc-unit">g</span>';
+  document.getElementById('rSalzRes').innerHTML=sG+'<span class="rc-unit">g</span>';
+  document.getElementById('rTA').innerHTML='TA '+Math.round(100+hyd);
+  document.getElementById('rMehlS').textContent='von '+totalMehl+' g gesamt';
+  document.getElementById('rWasserS').textContent=qW>0?'inkl. '+qW+' g Quellstück':'von '+tW+' g gesamt';
+  const tip=document.getElementById('rTip');
+  if(hyd<72){tip.style.display='block';tip.innerHTML='<strong>Tipp:</strong> Unter 72% — sehr festes Brot. Gut für Anfänger.';}
+  else if(hyd<=85){tip.style.display='block';tip.innerHTML='<strong>Tipp:</strong> TA '+Math.round(100+hyd)+' — optimale Zone für saftiges Roggenbrot.';}
+  else{tip.style.display='block';tip.innerHTML='<strong>Tipp:</strong> Über 85% — sehr weicher Teig. Kastenform zwingend.';}
+}
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('page-'+name);
+  if(pg)pg.classList.add('active');
+  const navKey=name==='rechner'?'rechner':'home';
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.nav===navKey));
+  window.scrollTo(0,0);
+}
+
+
+// ── CIABATTA ──────────────────────────────────────────────
+let ciabattaMehl=750;
+
+// ── MISCHBROT (Helles Roggenmischbrot 60/40) ────────────────
+RECIPES.mischbrot={
+  name:'Helles Roggenmischbrot 60/40',
+  steps:[
+    {
+      title:'Sauerteig ansetzen', time:'Vortag — 5 min',
+      desc:'Anstellgut im Wasser auflösen, Mehl einrühren. Abgedeckt 14–24h im Raum reifen lassen.',
+      ings:[
+        {a:'21 g',n:'Anstellgut',note:'Roggensauer, oder Weizensauer (60/40 ansetzen)'},
+        {a:'210 g',n:'Roggenmehl 997',note:'Oder Champagnerroggen Typ 1000'},
+        {a:'210 g',n:'Wasser, 38°C',note:''}
+      ],
+      info:{warum:'Der einstufige Sauerteig wird einmal angesetzt und nach der Reife direkt im Hauptteig verwendet — kein Vorteig-Umbau nötig wie bei mehrstufigen Sauerteigen.',temp:'14–24h bei Raumtemperatur (20–22°C). Längere Reife = säuerlicher.',exp:'Falls der Sauerteig nicht triebstark ist: 1g Frischhefe im Hauptteig zusätzlich verwenden.',acht:'Sauerteig sollte vor dem Backtag schon ein paar Tage gefüttert worden sein, wenn ohne Hefe gebacken wird.'}
+    },
+    {
+      title:'Kochstück ansetzen', time:'Vortag — 10 min',
+      desc:'Mehl im kochenden Wasser einrühren bis keine Klumpen mehr da sind. Unter Rühren aufkochen bis puddingartige Konsistenz erreicht ist (nicht anbrennen lassen). Frischhaltefolie direkt auf das Kochstück legen, im Raum auskühlen lassen.',
+      ings:[
+        {a:'20 g',n:'Weizenmehl 550',note:''},
+        {a:'100 g',n:'Wasser, kochend',note:''}
+      ],
+      info:{warum:'Das Kochstück bindet Wasser im Mehl durch Verkleisterung der Stärke. So lässt sich mehr Wasser in den Hauptteig einbringen als die Mehle normalerweise aufnehmen könnten — das ergibt eine saftigere Krume und längere Frischhaltung.',temp:'Wasser muss wirklich kochen beim Einrühren. Konsistenz: puddingartig, nicht flüssig.',exp:'Kochstück kann auch mit Roggenmehl gemacht werden — bindet noch etwas mehr Wasser.',acht:'Anbrennen vermeiden — ständig rühren. Folie direkt auf der Oberfläche verhindert Hautbildung.'}
+    },
+    {
+      title:'Hauptteig mischen', time:'Backtag — 10 min',
+      desc:'Sauerteig im warmen Wasser auflösen, Mehl zugeben. 6 min Stufe 1, dann 3–4 min Stufe 2. Salz und Kochstück etappenweise einkneten sobald der Teig einigermassen glatt ist. Reservewasser nur tröpfchenweise zugeben falls der Teig noch zu fest ist — aufhören sobald er weich genug ist.',
+      ings:[
+        {a:'90 g',n:'Roggenmehl 997',note:''},
+        {a:'180 g',n:'Weizenmehl 550',note:''},
+        {a:'100 g',n:'Wasser, 80°C',note:'Warmes Wasser ist hier korrekt — Teig soll auf Temperatur kommen'},
+        {a:'11 g',n:'Salz',note:''},
+        {a:'30 g',n:'Reservewasser (Bassinage)',note:'Nur falls Teig zu fest bleibt'},
+        {a:'alles',n:'Sauerteig & Kochstück',note:'Aus Schritt 1 & 2'}
+      ],
+      info:{warum:'Das warme Wasser (80°C) bringt den fertigen Teig auf die Zieltemperatur von ca. 27°C — wichtig damit der Teig nicht zu lange braucht und dabei übersäuert.',temp:'Zieltemperatur Teig: ~27°C. Bei dir wärmer? Beim nächsten Mal kühleres Wasser verwenden.',exp:'Der Teig wird durch den Roggenanteil nicht komplett glatt und löst sich evtl. nicht vom Kesselrand — das ist normal bei diesem Mischungsverhältnis.',acht:'Fenstertest wird NICHT bestanden — das ist bei diesem Rezept normal und kein Fehler. Salz und Kochstück erst zugeben wenn der Teig schon etwas Struktur hat.'}
+    },
+    {
+      title:'Stockgare', time:'Backtag — 1.5 Stunden', timerSec:5400,
+      desc:'Teig in eine leicht geölte Teigwanne geben. Ca. 1.5 Stunden bei 22°C Raumtemperatur reifen lassen.',
+      ings:[],
+      info:{warum:'In der Stockgare entwickelt der Teig erste Gärgase und Aroma. Bei diesem Mischbrot ist die Stockgare kürzer als bei reinem Weizenteig, da der hohe Sauerteig-Anteil schneller arbeitet.',temp:'22°C: ca. 1.5h. Wärmer = etwas kürzer, aber Vorsicht vor Übersäuerung.',exp:'Leicht verlängerbar für mehr Aroma, aber nicht nötig bei diesem Rezept.',acht:'Nicht zu lange gehen lassen — der Teig ist durch den Sauerteig bereits aktiv und kann schnell übersäuern.'}
+    },
+    {
+      title:'Formen', time:'Backtag — 15 min',
+      desc:'Teig auf bemehlte Fläche kippen. Mit Teigschaber Mehl unter den Teigling schieben. Oberfläche leicht bemehlen, Luft sanft entgasen für feine Krume. Seiten der Reihe nach zur Mitte falten, dabei leicht drehen — Spannung aufbauen, dann mit Schwung umdrehen. Mit der flachen Hand zu sich heranziehen für mehr Spannung. Mit Schluss nach unten ins gemehlte Gärkörbchen legen.',
+      ings:[],
+      info:{warum:'Das Falten und Drehen baut Oberflächenspannung auf — die "Haut" die dem Brot später im Ofen hilft, gleichmässig aufzugehen statt unkontrolliert zu reissen.',temp:'Raumtemperatur — Teig sollte nicht zu kalt sein zum Formen.',exp:'Eine ausführliche Schritt-für-Schritt-Anleitung zum rustikalen Formen gibt es als Video-Referenz beim Originalrezept.',acht:'Zu viel Mehl beim Formen = sichtbare Mehlschichten im fertigen Brot. Zu wenig Spannung = Brot läuft beim Backen breit.'}
+    },
+    {
+      title:'Stückgare', time:'Backtag — 2.5–3 Stunden', timerSec:9900,
+      desc:'Mit Küchentuch abdecken. 2.5 bis 3 Stunden im Raum reifen lassen — Teigling vergrössert sich dabei nochmal um ca. 30–50%. Ofen mit Topf (oder Pizzastein) auf 250°C vorheizen sobald deutliche Risse auf der Oberfläche sichtbar sind — das ist das Signal zum Backen.',
+      ings:[],
+      info:{warum:'In der langen Stückgare entwickelt das Brot sein finales Volumen und Aroma. Die sichtbaren Risse zeigen an, dass die Gärung weit genug fortgeschritten ist — wichtiger als die Uhrzeit.',temp:'22°C: 2.5–3h üblich, kann je nach Sauerteig-Aktivität variieren. Beobachten statt nur die Uhr im Auge behalten.',exp:'Geht die Gare schneller bei dir? Dann früher backen — der Teig zeigt es durch die Risse an.',acht:'Übergare erkennbar an stark eingefallener Oberfläche statt feinen Rissen — dann lieber sofort backen statt noch länger warten.'}
+    },
+    {
+      title:'Backen', time:'50–55 min', timerSec:3000,
+      desc_topf:'Teigling auf Backpapier stürzen, mit Papier in den heissen Topf legen, Deckel drauf. 25 min bei 250°C. Dann Deckel ab, weitere 25 min bei 200°C ohne Deckel.',
+      desc_kasten:'Ofen auf 250°C vorheizen (kein Topf). Teigling aus dem Gärkörbchen in die geölte Kastenform stürzen. Längs einschneiden (1 cm tief, ein Zug). Sofort einschiessen — Tasse heisses Wasser in Schale auf dem Ofenboden für Dampf. 10 min bei 250°C mit Dampf. Dampf ablassen (Schale raus), auf 200°C, weitere 40–45 min. Klopftest: hohl = fertig.',
+      desc_blech:'Teigling auf Backpapier stürzen, auf den heissen Backstein/Blech stürzen, sofort schwaden (Dampf). 10 min bei 250°C unter Dampf. Dampf kurz ablassen, dann 40 min bei 200°C ohne Dampf.',
+      ings:[],
+      info:{warum:'Hohe Anfangshitze mit Dampf/Deckel erzeugt den Ofentrieb und hält die Oberfläche elastisch. Die zweite Phase bei niedrigerer Temperatur backt die Krume durch und karamellisiert die Kruste.',temp:'250°C Startphase: maximaler Trieb. 200°C zweite Phase: durchbacken. Für dunklere Kruste: nur auf 220°C statt 200°C reduzieren.',exp:'Kastenform ergibt ein klassisch hohes Brot das sich besonders gut schneiden lässt. Topf gibt knusprigere Kruste ringsherum.',acht:'Kastenform gut ölen — Mischbrot klebt gerne. Topf MUSS vorgeheizt sein (mind. 30 min). Bei Backstein: Dampf nicht vergessen.'}
+    },
+    {
+      title:'Auskühlen', time:'2–3 Stunden', timerSec:9000,
+      desc:'Auf einem Rost vollständig auskühlen lassen. Wegen des hohen Roggenanteils und der Kochstück-Feuchtigkeit braucht dieses Brot etwas Geduld — nicht zu früh anschneiden.',
+      ings:[],
+      info:{warum:'Die Krume zieht beim Auskühlen restliche Feuchtigkeit aus dem Innern — das "Nachbacken". Zu früh angeschnitten bleibt die Krume klitschig.',temp:'Mindestens 2h, besser 3h. Kerntemperatur sollte unter 30°C sinken.',exp:'Dieses Brot hält durch Sauerteig und Kochstück besonders lange frisch — am besten in Leinentuch oder Brotkasten aufbewahren.',acht:'Nicht in Plastik einwickeln solange noch warm — Kondenswasser macht die Kruste weich.'}
+    }
+  ]
+};
+
+RECIPES.ciabatta={
+  name:'Sauerteig-Ciabatta',
+  steps:[
+    {
+      title:'Poolish ansetzen', time:'Abend 1 — 5 min',
+      desc:'Poolish-Zutaten verrühren bis kein trockenes Mehl sichtbar. Abdecken, bei Raumtemperatur stehen lassen. Bereit nach 8–12h wenn blasig — also erst am nächsten Abend weitermachen.',
+      ings:[],// dynamisch gefüllt
+      info:{warum:'Der Poolish ist ein Vorteig mit 100% Hydration — gleiche Teile Mehl und Wasser. Er entwickelt in 8–12h ein tiefes, komplexes Aroma ohne Säure. Das Anstellgut ersetzt die Hefe und gibt dem Ciabatta seinen charakteristischen Sauerteig-Unterton.',temp:'18–22°C: 10–12h. 25°C: 8h. Kühlschrank (4°C): bis 16h möglich — gibt noch mehr Aroma, weniger Säure.',exp:'Poolish kann auch mit 1–2g Frischhefe zusätzlich gemacht werden für sichereren Trieb. Oder 20% Ruchmehl im Poolish für mehr Aroma.',acht:'Poolish der zu lange steht (kollabiert, stark säuerlich riecht) nicht mehr verwenden — ergibt saures, flaches Brot.'}
+    },
+    {
+      title:'Autolyse', time:'Abend 2 — 30–60 min', timerSec:2700,
+      desc:'Am nächsten Abend, wenn der Poolish bereit ist: Hauptteig-Mehl und Wasser (ohne Salz, ohne Poolish) mischen. Abdecken, 30–60 min ruhen lassen.',
+      ings:[],
+      info:{warum:'Die Autolyse lässt Enzyme das Mehl vorverdauen und das Glutennetz beginnt sich ohne Kneten aufzubauen. Das ergibt einen dehnbareren Teig der sich besser für die offene Ciabatta-Porung eignet.',temp:'Raumtemperatur 20–22°C. Wasser idealerweise 20–22°C — kühler als sonst, weil der Teig später intensiv gefaltet wird.',exp:'Längere Autolyse (60 min) = extensiblerer Teig, offenere Porung. Kürzere (30 min) = kompakterer Teig, einfacher zu handhaben.',acht:'Noch kein Salz zugeben — Salz hemmt die Enzymaktivität die wir jetzt wollen.'}
+    },
+    {
+      title:'Poolish & Salz einarbeiten', time:'Abend 2 — 5 min',
+      desc:'Poolish über den Autolyseteig geben. Salz darüber streuen. Mit der Hand oder auf Stufe 1 (Maschine) 3–4 min mischen bis alles homogen ist. Teig wird sehr klebrig — das ist normal.',
+      ings:[],
+      info:{warum:'Poolish und Salz werden erst nach der Autolyse zugegeben um die Enzymaktivität der Autolyse nicht zu unterbrechen. Poolish bringt aktive Hefen und Bakterien sowie vorfermentiertes Mehl.',temp:'Teigtemperatur nach dem Einarbeiten: ideal 24–25°C.',exp:'Bassinage: 20–30g Wasser extra zurückhalten und nach dem Einarbeiten des Poolish schlückchenweise einkneten für noch höhere Hydration.',acht:'Teig klebt stark — Hände nass halten, nicht Mehl zugeben. Mehr Mehl = kompaktere Krume, weniger offene Porung.'}
+    },
+    {
+      title:'Stretch & Fold — 4 Runden', time:'Abend 2 — 2 Stunden', timerSec:7200,
+      desc:'Alle 30 min eine Runde Stretch & Fold: nasse Hand unter den Teig, hochziehen und über sich selbst falten — 4× von allen Seiten. Schüssel drehen. Nach jeder Runde abdecken. Nach 4 Runden (2h): Teig soll glatt, glänzend sein und sich vom Schüsselrand lösen.',
+      ings:[],
+      info:{warum:'Stretch & Fold baut das Glutennetz auf ohne die Gärgase zu zerstören — das ist der Trick für die offene Ciabatta-Porung. Jede Runde stärkt die Teigstruktur.',temp:'Raumtemperatur 22–24°C ideal. Wärmer = Gare geht schneller, eventuell weniger Runden nötig.',exp:'Coil Fold als Alternative: Teig in der Schüssel wie eine Spirale zusammenfalten. Gibt noch mehr Spannung. Nach der 4. Runde: wenn der Teig noch sehr weich ist, eine 5. Runde machen.',acht:'Zu stark ziehen = Glutennetz reisst. Sanft aber bestimmt hochziehen. Wenn der Teig widersteht: kurz entspannen lassen (10 min) dann weiterfalten.'}
+    },
+    {
+      title:'In den Kühlschrank', time:'Abend 2 — Über Nacht',
+      desc:'Teig flach in eine geölte rechteckige Schüssel oder Tupperware geben (Fläche wichtig — nicht hoch, sondern flach). Abdecken. In den Kühlschrank für 8–12h. Nicht formen — Ciabatta wird direkt aus der Schüssel gestürzt.',
+      ings:[],
+      info:{warum:'Die kalte Übernacht-Gare verlangsamt die Fermentation und entwickelt Aroma ohne Säure. Der Teig festigt sich im Kühlschrank und lässt sich so besser handhaben — wichtig für so einen weichen Teig.',temp:'Kühlschrank 4–6°C. Teig soll in der Nacht noch 30–50% wachsen (nicht verdoppeln).',exp:'Wer morgen früh früh backen will: Teig um 21–22 Uhr in den Kühlschrank. Um 7–8 Uhr bereit.',acht:'Zu volle Behälter: Teig läuft über Nacht über. Behälter soll nur halb voll sein. Plastikfolie direkt auf den Teig legen verhindert Krustenbildung.'}
+    },
+    {
+      title:'Ofen vorheizen', time:'Morgen — 30–45 min', timerSec:2700,
+      desc_topf:'Gusseisentopf in den Ofen. Auf 260°C (max.) vorheizen — mindestens 45 min. Der Topf muss wirklich glühend heiss sein.',
+      desc_blech:'Backblech/Stein in den Ofen. Eine kleine ofenfeste Schale oder ein altes Blech ganz unten auf den Ofenboden stellen (für den Dampf später). Auf 260°C vorheizen — mindestens 45 min.',
+      desc_broetchen:'Backblech in den Ofen, mittlere Schiene. Eine kleine ofenfeste Schale oder ein altes Blech ganz unten auf den Ofenboden stellen — dort kommt später das heisse Wasser für den Dampf rein. Auf 250°C vorheizen, ca. 30 min.',
+      ings:[],
+      info:{warum:'Ciabatta braucht maximale Anfangshitze für den Ofentrieb und die charakteristische offene Porung. Der Dampf hält die Oberfläche der Teiglinge elastisch, damit sie aufgehen können ohne zu früh eine feste Kruste zu bilden.',temp:'260°C für Topf/Blech ist optimal, Brötchen reichen mit 250°C. Wenn der Ofen nicht ganz hochkommt: 5–10 min länger vorheizen. Ofenthermometer verwenden.',exp:'Backstein (Pizzastein) ist ideal für Ciabatta auf dem Blech: hält die Hitze gleichmässiger als ein Blech.',acht:'Topf/Ofen zu kalt = kein Ofentrieb, Ciabatta bleibt flach. 30–45 min ist das Minimum — lieber etwas länger.'}
+    },
+    {
+      title:'Stürzen & Backen', time:'Morgen — 18–35 min', timerSec:1980,
+      desc_topf:'Teig direkt aus dem Kühlschrank nehmen. Backpapier auf Teig legen, Schüssel umkehren — Teig fällt auf Backpapier. Nicht mehr formen. Mit Teigkarte grob rechteckig ziehen (max. 2–3 Züge). Mit Backpapier in heissen Topf heben. Deckel drauf. 20 min 260°C. Deckel ab, 12–15 min 220°C bis goldbraun.',
+      desc_blech:'Teig direkt aus dem Kühlschrank auf Backpapier stürzen. Grob rechteckig ziehen. Auf heisses Blech/Stein. Sofort Dampf (Tasse Wasser in Schale unten). 15 min 260°C. Dampf ablassen, 15–18 min 220°C.',
+      desc_broetchen:'Teig direkt aus dem Kühlschrank auf bemehlte Fläche stürzen. Mit der Teigkarte in 6–8 gleich grosse Rechtecke schneiden — nicht formen, nur teilen. Auf Backpapier setzen, grosszügig Abstand lassen (sie laufen breiter). Sofort Dampf geben — heisses Wasser aus einer Tasse in die vorgeheizte Schale auf dem Ofenboden giessen, direkt nach dem Einschiessen. 18–22 min bei 250°C bis goldbraun.',
+      ings:[],
+      info:{warum:'Kalt einschießen ist bei Ciabatta wichtig: der kalte, feste Teig behält seine Form besser beim Handling. Kein Formen — jedes Anfassen zerstört die aufgebauten Gärblasen.',temp:'Temperatur bleibt hoch: 260°C Startphase für maximalen Ofentrieb (Brötchen: 250°C reicht wegen kürzerer Backzeit). 220°C Endphase für goldene Kruste.',exp:'Mehrere kleine Ciabatte oder Brötchen (je 300–400g bzw. 80–100g) statt ein grosses Brot: kürzere Backzeit, knusprigere Kruste ringsherum.',acht:'Nicht einschneiden — Ciabatta reisst von selbst auf, das gehört so. Bei Brötchen: genug Abstand lassen, sonst wachsen sie zusammen.'}
+    },
+    {
+      title:'Auskühlen', time:'Morgen — 20–45 min', timerSec:2700,
+      desc:'Auf Gitter auskühlen. Beim Abkühlen knistert die Kruste — das ist das Zeichen für eine gute Ciabatta. Frisch essen.',
+      desc_broetchen:'Auf Gitter mindestens 20 min auskühlen — Brötchen sind durch ihre Grösse schneller fertig als ein grosses Brot. Beim Abkühlen knistert die Kruste.',
+      ings:[],
+      info:{warum:'Die Kruste zieht beim Abkühlen Feuchtigkeit aus der Krume — das ist das charakteristische Knistern. Zu früh anschneiden: Krume noch feucht und gummig.',temp:'Brötchen: 20 min reichen. Grosses Brot: 45 min Minimum. Noch leicht warm essen ist am besten.',exp:'Reste einfrieren (in Scheiben oder ganze Brötchen): direkt aus der Tiefkühle toasten. Für Bruschetta: halbieren, Olivenöl, 5 min bei 200°C.',acht:'Nie in Plastik einwickeln solange warm — Kruste wird sofort weich. In Leinentuch oder offen aufbewahren.'}
+    }
+  ]
+};
+
+function calcCiabatta(){
+  const mehl=parseInt(document.getElementById('cFlour').value);
+  ciabattaMehl=mehl;
+  document.getElementById('cFlourVal').innerHTML=mehl+'<small>g</small>';
+  // Poolish: 30% des Mehls
+  const pM=Math.round(mehl*0.30);
+  const pW=pM; // 100% Hydration
+  const pA=Math.round(mehl*0.06);
+  // Hauptteig
+  const hM=mehl-pM;
+  const totalW=Math.round(mehl*0.78); // 78% Hydration gesamt
+  const hW=totalW-pW;
+  const salz=Math.round(mehl*0.02);
+  // Brote
+  const brote=mehl>=900?2:1;
+  document.getElementById('cBrote').textContent=brote;
+  document.getElementById('cBroteSub').textContent=brote===2?'à '+(Math.round((mehl*1.78/2)/50)*50)+'g':'1 grosses Brot';
+  document.getElementById('cTA').textContent='TA '+Math.round(100+78);
+  document.getElementById('cPM').innerHTML=pM+'<span class="rc-unit">g</span>';
+  document.getElementById('cPW').innerHTML=pW+'<span class="rc-unit">g</span>';
+  document.getElementById('cPA').innerHTML=pA+'<span class="rc-unit">g</span>';
+  document.getElementById('cHM').innerHTML=hM+'<span class="rc-unit">g</span>';
+  document.getElementById('cHW').innerHTML=hW+'<span class="rc-unit">g</span>';
+  document.getElementById('cHS').innerHTML=salz+'<span class="rc-unit">g</span>';
+  // Update step ingredients dynamically
+  RECIPES.ciabatta.steps[0].ings=[
+    {a:pM+' g',n:'Weissmehl 550',note:'30% des Gesamtmehls'},
+    {a:pW+' g',n:'Wasser, kalt',note:'100% Hydration'},
+    {a:pA+' g',n:'Anstellgut',note:'Aktiver Weizen- oder Roggensauer'}
+  ];
+  RECIPES.ciabatta.steps[1].ings=[
+    {a:hM+' g',n:'Weissmehl 550',note:'Restliches Mehl'},
+    {a:hW+' g',n:'Wasser, 20°C',note:'Kühl — Teig wird warm beim Falten'}
+  ];
+  RECIPES.ciabatta.steps[2].ings=[
+    {a:'alles',n:'Poolish aus Schritt 1',note:'Blasig und aktiv'},
+    {a:salz+' g',n:'Salz',note:'2% von '+mehl+'g Mehl'}
+  ];
+  renderRecipe('ciabatta');
+}
+
+// ── LAUGENGEBÄCK (Brezeln, Brötchen, Laugenbrot) ─────────────
+MATERIALS.laugen=[
+  {icon:'⚖️',name:'Küchenwaage',opt:'Auch für die Lauge — auf 1 g genau'},
+  {icon:'🤖',name:'Knetmaschine',opt:'Der Teig ist fest — von Hand sehr anstrengend'},
+  {icon:'🧤',name:'Gummihandschuhe',opt:'Pflicht bei Natronlauge'},
+  {icon:'🥽',name:'Schutzbrille',opt:'Pflicht bei Natronlauge'},
+  {icon:'🥣',name:'Schüssel aus Edelstahl, Glas oder Kunststoff',opt:'Für die Lauge — nie Aluminium oder Zinn'},
+  {icon:'🥄',name:'Schaumlöffel (Edelstahl/Kunststoff)',opt:'Zum Eintauchen und Herausheben'},
+  {icon:'📐',name:'Backblech mit Backpapier oder Silikonmatte',opt:'Kein blankes Aluminiumblech — Lauge greift es an'},
+  {icon:'🔪',name:'Scharfes Messer / Rasierklinge',opt:'Zum Einschneiden'},
+  {icon:'🧂',name:'Grobes Salz',opt:'Brezelsalz oder grosse Salzflocken'},
+  {icon:'🧊',name:'Kühlschrank',opt:'Zum Anziehen der Teiglinge'},
+  {icon:'🌡️',name:'Ofenthermometer',opt:'Empfohlen'},
+];
+
+RECIPES.laugen={
+  name:'Laugengebäck',
+  steps:[
+    {
+      title:'Material & Sicherheit', time:'5 min',
+      material:'laugen',
+      warn:'<strong>Natronlauge ist ätzend.</strong> Immer Handschuhe und Schutzbrille tragen, Kinder und Haustiere fernhalten. Natriumhydroxid-Plättchen langsam ins kalte Wasser geben — nie Wasser auf die Plättchen giessen. Keine Aluminiumgefässe. Bei Hautkontakt sofort mit viel Wasser spülen, bei Augenkontakt mindestens 15 min spülen und ärztlichen Rat holen. Wer das nicht möchte, nimmt das Natron-Bad (siehe unten) — ungefährlich, aber etwas heller.',
+      desc:'Alles bereitlegen. Wähle deine Lauge: <strong>Natronlauge 3 %</strong> (traditionell, tiefbraune Kruste, typisches Aroma) oder <strong>Natron-Bad</strong> (ungefährlich, mildere Farbe). Beide Varianten sind im Schritt «Ofen & Lauge» erklärt. Die Schritte darunter gelten für Brezeln, Brötchen und Laugenbrot — wähle oben die Form.',
+      ings:[],
+      info:{warum:'Die Lauge hebt den pH-Wert an der Teigoberfläche. Dadurch läuft die Bräunungsreaktion (Maillard) schon bei normaler Backtemperatur sehr kräftig ab — das gibt die tiefbraune, glänzende Kruste und das typische Laugenaroma.',temp:'Natronlauge: 1000 g Wasser + 30 g Natriumhydroxid (3 %). Natron-Bad: 1000 g Wasser + 40 g Natron aufkochen. Beide: Teiglinge 20–30 s eintauchen.',exp:'Natron lässt sich stärker machen: 1 h bei 120°C im Ofen «backen» — es wird zu Soda (Natriumcarbonat) und färbt deutlich dunkler. Soda reizt Haut und Augen, also auch hier Handschuhe.',acht:'Ohne Handschuhe und Brille keine Natronlauge. Nie in Aluminiumgefässen ansetzen oder abtropfen lassen — das Metall wird angegriffen und es entsteht Wasserstoff. Lauge nie in Getränkeflaschen füllen. Reste stark verdünnt entsorgen.'}
+    },
+    {
+      title:'Teig kneten', time:'12 min', timerSec:720,
+      desc:'Hefe im Wasser auflösen. Alle Zutaten in die Knetmaschine. 4 min Stufe 1, dann 6–8 min Stufe 2, bis der Teig glatt, fest und geschmeidig ist und sich vom Schüsselrand löst. Er soll nicht kleben.',
+      ings:[
+        {a:'500 g',n:'Weizenmehl 550 (CH: Weissmehl)',note:'Brezelteig ist fest — nur ca. 54 % Wasser'},
+        {a:'270 g',n:'Wasser, 30°C',note:'Nicht wärmer — sonst wird die Hefe zu aktiv'},
+        {a:'12 g',n:'Frischhefe',note:'Oder 4 g Trockenhefe'},
+        {a:'10 g',n:'Salz',note:'2 % vom Mehl'},
+        {a:'30 g',n:'Butter, weich',note:'Oder Schweineschmalz — klassisch schwäbisch'},
+        {a:'5 g',n:'Backmalz',note:'Optional — für Farbe und Aroma'}
+      ],
+      info:{warum:'Der feste Teig lässt sich zu dünnen Strängen rollen und behält im Laugenbad seine Form. Butter macht die Krume weich und die Kruste fein.',temp:'Teigtemperatur nach dem Kneten: 24–26°C.',exp:'Mehl 405 (Weissmehl) gibt eine feinere Krume, 550 mehr Biss. 10 % Dinkelmehl bringt nussiges Aroma. Statt Wasser Milch ergibt weichere Brötchen.',acht:'Zu weicher Teig: Brezeln laufen auseinander. Lieber mit 10 g weniger Wasser starten und nur bei Bedarf nachgeben.'}
+    },
+    {
+      title:'Ruhen', time:'30–45 min', timerSec:2400,
+      desc:'Teig abdecken und bei Raumtemperatur ruhen lassen, bis er etwa ein Drittel grösser ist. Er muss nicht verdoppeln.',
+      ings:[],
+      info:{warum:'Kurze Gare: Der Teig soll sich entspannen, aber nicht zu luftig werden — sonst sind die geformten Teiglinge zu weich fürs Laugenbad.',temp:'22°C: 30–45 min. Im Kühlschrank bis 12 h möglich (mehr Aroma, freier Zeitplan).',exp:'Am Vorabend kneten, über Nacht kühlen, morgens formen — dann sind die Brezeln zum Frühstück fertig.',acht:'Übergare: Die Teiglinge fallen im Bad zusammen und die Kruste wird dick und blasig.'}
+    },
+    {
+      title:'Teilen & Formen', time:'20 min',
+      desc_brezel:'Teig in {n} Stücke teilen (je ca. 100 g). Jedes Stück zu einem Strang von 55–60 cm rollen: Mitte fingerdick, Enden dünn auslaufend. Strang zur U-Form legen, die Enden zweimal umeinander drehen, auf die Mitte herunterklappen und gut andrücken. Auf Backpapier legen.',
+      desc_broetchen:'Teig in {n} Stücke teilen (je ca. 100 g). Jedes Stück rundwirken: Teig von aussen zur Mitte ziehen, mit dem Schluss nach unten unter der hohlen Hand kreisen lassen, bis die Oberfläche gespannt ist. Oder zu Laugenstangen (ca. 15 cm) rollen. Auf Backpapier legen.',
+      desc_brot:'Teig zu einem länglichen Laib formen (Langwirken) oder in eine geölte Kastenform legen — Schluss nach unten, Oberfläche glatt streichen.',
+      ings:[],
+      info:{warum:'Oberflächenspannung sorgt für gleichmässige Form und glatte Kruste. Die dicke Mitte der Brezel bleibt der weiche «Bauch», die dünnen Arme werden knusprig.',temp:'Teig bei Raumtemperatur formen — er ist fest, aber gut rollbar.',exp:'Zum Üben erst kürzere Stränge (45 cm) rollen: kleinere, einfachere Brezeln. Brötchen: kreuzweise oder als Stange längs einschneiden.',acht:'Zu viel Mehl auf der Arbeitsfläche: Der Strang rutscht und lässt sich nicht rollen. Fast ohne Mehl arbeiten, Fläche leicht feucht halten.'}
+    },
+    {
+      title:'Anziehen lassen', time:'30–45 min', timerSec:2400,
+      desc:'Die geformten Teiglinge unabgedeckt auf dem Blech in den Kühlschrank stellen, bis die Oberfläche leicht trocken ist und eine feine Haut hat. Alternativ 10–15 min ins Tiefkühlfach.',
+      ings:[],
+      info:{warum:'Kalte, angetrocknete Teiglinge sind fester: Sie lassen sich im Bad ohne Verformung anfassen und nehmen die Lauge gleichmässig auf. Die Haut ergibt die glänzende Kruste.',temp:'Kühlschrank 4°C: 30–45 min. Tiefkühlfach: 10–15 min — nicht länger, sonst frieren sie.',exp:'Über Nacht im Kühlschrank geht auch: Dann vor dem Bad 20 min offen antrocknen lassen.',acht:'Warme, weiche Teiglinge werden im Bad unförmig oder reissen. Lieber 10 min länger kühlen.'}
+    },
+    {
+      title:'Ofen & Lauge', time:'20 min', timerSec:1200,
+      warn:'<strong>Natronlauge:</strong> Zuerst Handschuhe und Schutzbrille anziehen. Plättchen langsam in das kalte Wasser geben (nie umgekehrt), mit einem Kunststoff- oder Edelstahllöffel rühren — die Lösung wird warm. Gefäss aus Edelstahl, Glas oder Kunststoff, kein Aluminium.',
+      ings:[
+        {a:'1000 g',n:'Wasser, kalt',note:'Für die Lauge — wird nicht mit dem Mehl skaliert',noScale:true},
+        {a:'30 g',n:'Natriumhydroxid, Lebensmittelqualität',note:'3 % — Laugenplättchen aus Drogerie oder Apotheke (E 524)',noScale:true},
+        {a:'40 g',n:'Alternativ: Natron statt Natriumhydroxid',note:'Ungefährlich: 1000 g Wasser mit dem Natron aufkochen (schäumt stark), dann heiss, aber nicht mehr sprudelnd verwenden',noScale:true}
+      ],
+      desc:'Ofen auf 220°C Ober-/Unterhitze vorheizen (mittlere Schiene). Lauge ansetzen, Schüssel neben das Blech mit den Teiglingen stellen. Ein zweites Blech mit Backpapier oder Silikonmatte zum Backen bereithalten — kein blankes Aluminium.',
+      info:{warum:'Der Ofen muss heiss sein, sobald die Teiglinge aus der Lauge kommen: Die Lauge arbeitet weiter und die Teiglinge sollen nicht warten.',temp:'220°C Ober-/Unterhitze, mittlere Schiene. Umluft: 200°C.',exp:'Dampf ist bei Laugengebäck nicht nötig — die Kruste wird auch ohne Schwaden glänzend.',acht:'Lauge nie unbeaufsichtigt oder in Gefässen stehen lassen, die nach Getränk aussehen. Nach dem Backen verdünnt entsorgen und alle Gefässe gründlich spülen.'}
+    },
+    {
+      title:'Laugenbad & Einschneiden', time:'10 min',
+      desc_brezel:'Mit Handschuhen: Jede Brezel 20–30 Sekunden in die Lauge legen, einmal wenden, abtropfen lassen und auf das Backblech setzen. Sofort mit grobem Salz bestreuen. Die dickste Stelle der Mitte mit einem scharfen Messer ca. 1 cm tief einschneiden.',
+      desc_broetchen:'Mit Handschuhen: Teiglinge 20–30 Sekunden in der Lauge wenden, abtropfen lassen und aufs Blech setzen. Salz drauf. Mit dem Messer kreuzweise oder bei Stangen längs einschneiden (ca. 5 mm tief).',
+      desc_brot:'Mit Handschuhen: Laib 30–40 Sekunden in der Lauge wenden oder rundum mit einem Pinsel bestreichen, abtropfen lassen. In der Kastenform nur die Oberseite bestreichen. Salz aufstreuen. Mit Rasierklinge im Abstand von 3 cm schräg 1 cm tief einschneiden.',
+      ings:[],
+      info:{warum:'Je länger im Bad, desto dunkler und kräftiger die Kruste. 20–30 s sind der Standard.',temp:'Natron-Bad: 30–45 s, weil es schwächer wirkt.',exp:'4 % Lauge (40 g auf 1000 g) färbt dunkler. Statt Salz gehen Sesam, Mohn oder Käse (Käse erst in den letzten 5 min aufstreuen).',acht:'Nicht zu lange baden — das Gebäck wird bitter und seifig. Salz nur auf die noch feuchten Teiglinge streuen, sonst haftet es nicht.'}
+    },
+    {
+      title:'Backen', time:'15–35 min', timerSec:1200,
+      timers:{brezel:1080,broetchen:1200,brot:2100},
+      desc_brezel:'Sofort in den Ofen. 15–18 min bei 220°C, bis die Brezeln tiefbraun und glänzend sind.',
+      desc_broetchen:'Sofort in den Ofen. 18–22 min bei 220°C, bis die Brötchen tiefbraun sind.',
+      desc_brot:'10 min bei 220°C, dann auf 200°C zurückschalten und weitere 20–25 min backen. Klopftest: hohl = fertig. Kerntemperatur 94–96°C.',
+      ings:[],
+      info:{warum:'Die hohe Hitze bräunt die laugenbehandelte Oberfläche schnell, bevor die Krume austrocknet.',temp:'220°C Ober-/Unterhitze. Laugenbrot nach 10 min auf 200°C reduzieren, damit die Mitte durchbackt, ohne dass die Kruste verbrennt.',exp:'Tiefbraun ist Geschmack. Ist dir die Farbe zu dunkel, nächstes Mal 10°C weniger.',acht:'Zu helle Brezeln: Lauge zu schwach oder zu kurz gebadet. Blech zu weit unten: Der Boden wird zu dunkel.'}
+    },
+    {
+      title:'Auskühlen & Aufbewahren', time:'20 min', timerSec:1200,
+      desc:'Auf dem Gitter auskühlen lassen. Laugengebäck schmeckt am Backtag am besten, noch leicht warm. Am nächsten Tag 5 min bei 180°C aufbacken.',
+      ings:[],
+      info:{warum:'Die Kruste knuspert beim Abkühlen, danach zieht Feuchtigkeit aus der Krume nach und macht sie wieder weich — darum Laugengebäck frisch essen.',temp:'Brezeln und Brötchen: 20 min. Laugenbrot: 45 min.',exp:'Einfrieren: ausgekühlt in Gefrierbeutel. Aufbacken direkt aus dem Tiefkühler, 8–10 min bei 180°C.',acht:'Nie luftdicht verpacken, solange es warm ist — die Kruste wird zäh. Am Folgetag in der Papiertüte, nicht in Plastik.'}
+    }
+  ]
+};
+
+function updateLaugenInfo(){
+  const el=document.getElementById('lauInfo');if(!el)return;
+  const mehl=recipeFlour.laugen||500,v=vesselState.laugen||'brezel';
+  el.textContent=v==='brot'
+    ?'1 Laib à ca. '+(Math.round(mehl*1.65/50)*50)+' g Teig'
+    :Math.round(mehl/500*8)+' Stück à ca. 100 g Teig';
+}
+
+// ── REZEPTAUSWAHL (Startseite) ───────────────────────────────
+const CATALOG=[
+  {group:'Sauerteigbrote',cat:'sauer',items:[
+    {key:'roggen',ico:'🌾',title:'Roggenvollkornbrot',desc:'Saftig und kräftig, mit Quellstück',time:'ab 12 h vorher',level:'Mittel'},
+    {key:'mischbrot',ico:'🍞',title:'Helles Roggenmischbrot 60/40',desc:'Mild, fluffig, hält lange frisch',time:'2 Tage',level:'Mittel'},
+    {key:'ciabatta',ico:'🥖',title:'Sauerteig-Ciabatta',desc:'Luftig mit offener Porung, mit Poolish',time:'2 Abende + Morgen',level:'Mittel'}
+  ]},
+  {group:'Hefebrot & Zopf',cat:'hefe',items:[
+    {key:'weizen',ico:'🥪',title:'Weizenbrot',desc:'Einfaches Alltagsbrot, auch über Nacht',time:'ca. 4 h',level:'Einfach'},
+    {key:'zopf',ico:'🧈',title:'CH-Butterzopf',desc:'Weich, goldgelb, mit Butter',time:'ca. 4 h',level:'Mittel'}
+  ]},
+  {group:'Laugengebäck',cat:'lauge',items:[
+    {key:'laugen',form:'brezel',ico:'🥨',title:'Schwäbische Laugenbrezeln',desc:'Knusprige Arme, weicher Bauch, tiefbraun',time:'ca. 3 h',level:'Mittel'},
+    {key:'laugen',form:'broetchen',ico:'🥯',title:'Laugenbrötchen',desc:'Gleicher Teig, schneller geformt',time:'ca. 3 h',level:'Einfach'},
+    {key:'laugen',form:'brot',ico:'🍞',title:'Laugenbrot',desc:'Ein Laib mit kräftiger Laugenkruste',time:'ca. 3 h',level:'Einfach'}
+  ]},
+  {group:'Werkzeuge',cat:'tool',items:[
+    {key:'rechner',ico:'⚖️',title:'Teig-Rechner',desc:'Vorteig, Hydration, Salz und Quellstück',time:'sofort',level:'Rechner'}
+  ]}
+];
+let homeFilter='alle';
+
+function setHomeFilter(k){homeFilter=k;renderHome();}
+
+function renderHome(){
+  const chips=[['alle','Alle'],['sauer','Sauerteig'],['hefe','Hefe'],['lauge','Lauge']];
+  document.getElementById('home-chips').innerHTML=chips.map(c=>
+    `<button class="chip${homeFilter===c[0]?' active':''}" onclick="setHomeFilter('${c[0]}')">${c[1]}</button>`).join('');
+  document.getElementById('home-list').innerHTML=CATALOG
+    .filter(g=>homeFilter==='alle'||g.cat===homeFilter)
+    .map(g=>`<div class="section-label">${g.group}</div>`+g.items.map(it=>
+      `<button class="rc-card" onclick="openRecipe('${it.key}','${it.form||''}')">
+        <div class="rc-ico">${it.ico}</div>
+        <div class="rc-body"><div class="rc-title">${it.title}</div><div class="rc-desc">${it.desc}</div>
+          <div class="rc-tags"><span class="rc-tag">${it.level}</span><span class="rc-tag plain">🕒 ${it.time}</span></div></div>
+        <span class="rc-chev">›</span></button>`).join('')).join('');
+}
+
+function openRecipe(key,form){
+  if(form){
+    vesselState[key]=form;
+    document.querySelectorAll('#page-'+key+' .vessel-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===form));
+    renderRecipe(key);
+  }
+  showPage(key);
+}
+
+function initHome(){
+  ['roggen','weizen','zopf','ciabatta','mischbrot','laugen'].forEach(k=>{
+    const p=document.getElementById('page-'+k);
+    if(p)p.insertAdjacentHTML('afterbegin','<button class="back-link" onclick="showPage(\'home\')">← Alle Rezepte</button>');
+  });
+  renderHome();
+}
+
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
+
+// vessel support for ciabatta (topf default)
+vesselState.ciabatta='topf';
+vesselState.mischbrot='topf';
+
+document.querySelectorAll('.k-inp').forEach(inp=>inp.addEventListener('input',calcRechner));
+calcRechner();
+renderRecipe('roggen');
+renderRecipe('weizen');
+renderRecipe('zopf');
+renderRecipe('mischbrot');
+renderRecipe('laugen');
+calcCiabatta();
+initHome();
+
+</script>
+</body>
+</html>
