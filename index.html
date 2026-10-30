@@ -443,6 +443,18 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div id="steps-helles"></div>
 </div>
 
+<!-- TIPPS -->
+<div class="page" id="page-tipps">
+  <button class="back-link" onclick="showPage('home')">← Alle Rezepte</button>
+  <div class="card"><div class="rc-sub" style="font-size:0.75rem;line-height:1.7;color:var(--muted)">Klebriger Teig ist meist kein Fehler, sondern ein feuchter Teig. Mit etwas Technik und dem richtigen Werkzeug lässt er sich gut verarbeiten, ohne Mehl nachzukneten.</div></div>
+  <div class="section-label">Technik</div>
+  <div class="card"><ul style="margin:0;padding-left:1.1em;font-size:0.8rem;line-height:1.6;color:var(--text,#2b2b2b)"><li style="margin:0 0 .55em"><strong>Nasse statt bemehlte Hände.</strong> Zusätzliches Mehl verändert die Hydration und macht das Brot dichter. Mit Wasser an den Händen klebt nichts.</li><li style="margin:0 0 .55em"><strong>Autolyse.</strong> Mehl und Wasser 30–60 min ruhen lassen. Der Teig wird von allein glatter und weniger klebrig.</li><li style="margin:0 0 .55em"><strong>Dehnen und Falten statt langem Kneten.</strong> Alle 30 min, 3–4 Mal, mit nassen Händen. Der Teig wird Schritt für Schritt fester.</li><li style="margin:0 0 .55em"><strong>Kühl arbeiten.</strong> Kalter Teig klebt weniger. Eine Nacht im Kühlschrank macht ihn gut formbar.</li><li style="margin:0 0 .55em"><strong>Dinkel nicht überkneten.</strong> Sein Kleber ist empfindlich, zu langes Kneten lässt den Teig zerfallen und kleben.</li><li style="margin:0 0 .55em"><strong>Wasser in zwei Portionen.</strong> Die letzten 10–15 % Wasser erst nach der Autolyse einarbeiten.</li><li style="margin:0 0 .55em"><strong>Beim Formen</strong> nur ganz wenig bemehlen oder leicht befeuchten. Reismehl klebt weniger als Weizenmehl.</li></ul></div>
+  <div class="section-label">Werkzeug</div>
+  <div class="card"><ul style="margin:0;padding-left:1.1em;font-size:0.8rem;line-height:1.6;color:var(--text,#2b2b2b)"><li style="margin:0 0 .55em"><strong>Teigkarte (Bench Scraper):</strong> das wichtigste Werkzeug. Teig lösen, falten und aufnehmen, ohne dass er klebt. Metall oder Kunststoff, ca. 5–10 CHF.</li><li style="margin:0 0 .55em"><strong>Teigschaber aus Silikon</strong> für die Schüssel.</li><li style="margin:0 0 .55em"><strong>Teigwanne mit Deckel</strong> für die Stockgare. Falten direkt in der Wanne, der Teig muss nicht herausgenommen werden.</li><li style="margin:0 0 .55em"><strong>Gärkorb</strong> mit Reismehl bestäubt, damit nichts festklebt.</li><li style="margin:0 0 .55em"><strong>Backpapier</strong> zum Einlegen in den Gusseisentopf. Kein Umdrehen, kein Festkleben.</li><li style="margin:0 0 .55em"><strong>Sprühflasche</strong> mit Wasser für Hände und Arbeitsfläche.</li><li style="margin:0 0 .55em"><strong>Digitalwaage:</strong> Wasser in Gramm abwiegen. Falsche Hydration ist die häufigste Ursache für zu klebrigen Teig.</li></ul></div>
+  <div class="section-label">Bei sehr klebrigem Teig</div>
+  <div class="card"><div class="rc-sub" style="font-size:0.75rem;line-height:1.7;color:var(--muted)">Nimm beim nächsten Mal ca. 5 % weniger Wasser. Dinkel nimmt weniger Wasser auf als Weizen, und jedes Mehl verhält sich etwas anders.</div></div>
+</div>
+
 <!-- LAUGENGEBÄCK -->
 <div class="page" id="page-laugen">
   <div class="section-label">Mehlmenge</div>
@@ -1399,7 +1411,8 @@ const CATALOG=[
     {key:'laugen',form:'brot',ico:'🍞',title:'Laugenbrot',desc:'Ein Laib mit kräftiger Laugenkruste',time:'ca. 3 h',level:'Einfach'}
   ]},
   {group:'Werkzeuge',cat:'tool',items:[
-    {key:'rechner',ico:'⚖️',title:'Teig-Rechner',desc:'Vorteig, Hydration, Salz und Quellstück',time:'sofort',level:'Rechner'}
+    {key:'rechner',ico:'⚖️',title:'Teig-Rechner',desc:'Vorteig, Hydration, Salz und Quellstück',time:'sofort',level:'Rechner'},
+    {key:'tipps',ico:'🥣',title:'Klebriger Teig & Werkzeug',desc:'Tipps für feuchte Teige und das passende Werkzeug',time:'2 min lesen',level:'Tipps'}
   ]}
 ];
 let homeFilter='alle';
