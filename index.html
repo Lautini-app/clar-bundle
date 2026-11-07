@@ -475,14 +475,33 @@ footer{text-align:center;padding:2.5rem 1rem;font-size:0.61rem;color:var(--muted
   <div id="steps-laugen"></div>
 </div>
 
+<div class="page" id="page-dinkelbr">
+  <div class="section-label">Mehlmenge</div>
+  <div class="card">
+    <div class="sl-block"><div class="sl-head"><span class="sl-name">Gesamtmehl</span><span class="sl-val" id="dibFlourVal">500<small>g</small></span></div><input type="range" id="dibFlour" min="300" max="1500" step="50" value="500" oninput="onRecipeFlour('dinkelbr')"></div>
+    <div class="rc-sub" id="dibInfo" style="margin-top:0.2rem">8 Brötchen</div>
+    <div class="rc-sub" style="margin-top:0.4rem">Ohne Honig und ohne Zucker. Die kräftige Kruste kommt von der langen, kalten Gare und vom kräftigen Ausbacken.</div>
+  </div>
+  <div class="section-label">Triebmittel</div>
+  <div class="vessel-chooser">
+    <button class="vessel-btn active" data-v="hefe" onclick="setVessel('dinkelbr','hefe',this)"><span class="vb-icon">🌾</span><div class="vb-name">Mit Hefe</div><div class="vb-sub">Abend + Morgen</div></button>
+    <button class="vessel-btn" data-v="sauer" onclick="setVessel('dinkelbr','sauer',this)"><span class="vb-icon">🫙</span><div class="vb-name">Mit Sauerteig</div><div class="vb-sub">Tag + Nacht</div></button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-dinkelbr" style="width:0%"></div></div>
+    <div class="progress-label"><span class="prog-text" id="prog-dinkelbr-txt">Schritt 1 von 8</span><span class="prog-recipe">Dinkelbrötchen</span></div>
+  </div>
+  <div id="steps-dinkelbr"></div>
+</div>
+
 <footer>Clar Back · by Lautini · clar.back.lautini.ch<br>Anonyme Besucherzahlen ohne Cookies und ohne Personendaten.</footer>
 
 <script>
 const timers={};
-const stepState={roggen:0,weizen:0,zopf:0,ciabatta:0,mischbrot:0,laugen:0,helles:0,starter:0};
+const stepState={roggen:0,weizen:0,zopf:0,ciabatta:0,mischbrot:0,laugen:0,helles:0,starter:0,dinkelbr:0};
 
 function formatTime(s){const p=n=>String(n).padStart(2,'0');if(s>=3600){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+':'+p(m)+':'+p(s%60);}const m=Math.floor(s/60);return m+':'+p(s%60);}
-const vesselState={roggen:'topf',weizen:'topf',laugen:'brezel',helles:'topf'};
+const vesselState={roggen:'topf',weizen:'topf',laugen:'brezel',helles:'topf',dinkelbr:'hefe'};
 
 // INFO STRUCTURE: {warum, temp, exp, acht}
 // warum=Hintergrund, temp=Temperatur/Zeit erklärt, exp=Experimentieren, acht=Achtung
@@ -687,9 +706,9 @@ const RECIPES={
   }
 };
 
-const recipeFlour={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500,helles:500};
+const recipeFlour={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500,helles:500,dinkelbr:500};
 
-const FLOUR_ID_PREFIX={roggen:'rog',weizen:'wei',zopf:'zopf',mischbrot:'mis',laugen:'lau',helles:'hel'};
+const FLOUR_ID_PREFIX={roggen:'rog',weizen:'wei',zopf:'zopf',mischbrot:'mis',laugen:'lau',helles:'hel',dinkelbr:'dib'};
 let recipeRenderTimer={};
 function onRecipeFlour(key){
   const prefix=FLOUR_ID_PREFIX[key];
@@ -874,11 +893,12 @@ function renderRecipe(key){
   container.innerHTML='';
   const total=recipe.steps.length;
   // Scaling factor vs base 500g for roggen/weizen/zopf; ciabatta manages its own
-  const BASE={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500,helles:500};
+  const BASE={roggen:500,weizen:500,zopf:500,mischbrot:500,laugen:500,helles:500,dinkelbr:500};
   const factor=(recipeFlour[key]&&BASE[key])?recipeFlour[key]/BASE[key]:1;
   recipe.steps.forEach((step0,i)=>{
     let step=step0;
     if(key==='helles'&&helGrain==='dinkel'&&HEL_DINKEL[i]){const o=HEL_DINKEL[i];step=Object.assign({},step0,o);if(o.info)step.info=Object.assign({},step0.info,o.info);}
+    {const vv=vesselState[key];if(step['title_'+vv]||step['ings_'+vv]||step['time_'+vv]){step=Object.assign({},step);if(step['title_'+vv])step.title=step['title_'+vv];if(step['ings_'+vv])step.ings=step['ings_'+vv];if(step['time_'+vv])step.time=step['time_'+vv];}}
     const isDone=i<stepState[key],isActive=i===stepState[key];
     const div=document.createElement('div');
     div.className='step'+(isActive?' active':'')+(isDone?' done':'');
@@ -933,6 +953,7 @@ function renderRecipe(key){
   if(pf)pf.style.width=pct+'%';
   if(pt)pt.textContent='Schritt '+(stepState[key]+1)+' von '+total;
   if(key==='laugen')updateLaugenInfo();
+  if(key==='dinkelbr')updateDinkelbrInfo();
 }
 
 function goStep(key,i){
@@ -1389,6 +1410,91 @@ function updateLaugenInfo(){
     :Math.round(mehl/500*8)+' Stück à ca. 100 g Teig';
 }
 
+// ── DINKELBRÖTCHEN (Hefe oder Sauerteig, ohne Honig) ─────────
+MATERIALS.dinkelbr=[
+  {icon:'⚖️',name:'Küchenwaage',opt:'Digitalwaage, 1g-Genauigkeit'},
+  {icon:'🥣',name:'Teigbox oder Schüssel mit Deckel',opt:'Für die Gare im Kühlschrank'},
+  {icon:'🤖',name:'Knetmaschine',opt:'Oder von Hand, Dinkel braucht nur kurz'},
+  {icon:'📐',name:'Backblech mit Backpapier',opt:'Im Ofen mitvorheizen'},
+  {icon:'💧',name:'Ofenfeste Schale',opt:'Für Dampf, auf den Ofenboden'},
+  {icon:'💦',name:'Sprühflasche mit Wasser',opt:'Teiglinge vor dem Backen befeuchten'},
+  {icon:'🔪',name:'Scharfes Messer / Rasierklinge',opt:'Zum Einschneiden'},
+  {icon:'🧊',name:'Kühlschrank',opt:'Für die Übernachtgare'},
+];
+RECIPES.dinkelbr={
+  name:'Dinkelbrötchen',
+  steps:[
+    {
+      title_hefe:'Hefe auflösen', title_sauer:'Vorteig ansetzen', time_hefe:'2 min', time_sauer:'5–6 h',
+      timers:{sauer:19800},
+      material:'dinkelbr',
+      ings_hefe:[{a:'3 g',n:'Frischhefe',note:'Wenig Hefe, weil der Teig über Nacht kalt gärt'},{a:'320 g',n:'Wasser, kalt',note:'Direkt aus dem Hahn, der Teig soll kühl bleiben'}],
+      ings_sauer:[{a:'20 g',n:'Anstellgut',note:'Aus dem Kühlschrank, Weizen- oder Dinkelsauer'},{a:'50 g',n:'Dinkelmehl hell (Typ 630, CH: Dinkelweissmehl)',note:''},{a:'50 g',n:'Wasser, lauwarm (ca. 28°C)',note:'Gleich viel wie Mehl'}],
+      desc_hefe:'<strong>Am Abend, ca. 20:00.</strong> Frischhefe im kalten Wasser verrühren, bis sie aufgelöst ist.',
+      desc_sauer:'<strong>Am Mittag, ca. 12:00.</strong> Anstellgut, Mehl und Wasser verrühren, abdecken und bei Raumtemperatur reifen lassen, bis sich der Vorteig verdoppelt hat, Blasen wirft und leicht säuerlich riecht. Davon kommen 100 g in den Teig, der Rest geht zurück ins Anstellgut-Glas.',
+      info:{warum:'Hefe-Variante: Mit nur 3 g Hefe und kaltem Wasser gärt der Teig langsam. Das gibt mehr Aroma und eine bessere Bräunung, ganz ohne Honig oder Zucker. Sauerteig-Variante: Der Vorteig weckt das Anstellgut auf, damit der Teig kräftig und zuverlässig aufgeht.',temp:'Vorteig bei 24–26°C: 4–5 h. Bei 20°C: 6–8 h. Nach dem Volumen richten, nicht nach der Uhr.',exp:'Statt Weizen- geht auch Roggen-Anstellgut. Das Aroma wird dann etwas kräftiger und säuerlicher.',acht:'Ein träges Anstellgut (lange nicht gefüttert) vorher 1–2 Mal auffrischen. Ein Vorteig, der sich nicht verdoppelt, macht flache Brötchen.'}
+    },
+    {
+      title:'Teig kneten', time_hefe:'8 min', time_sauer:'20 + 6 min', timerSec:480,
+      timers:{hefe:480,sauer:1560},
+      ings_hefe:[{a:'450 g',n:'Dinkelmehl hell (Typ 630, CH: Dinkelweissmehl)',note:''},{a:'50 g',n:'Dinkelvollkornmehl',note:'Gibt Aroma und eine kräftigere Kruste'},{a:'10 g',n:'Salz',note:'2 % vom Mehl'},{a:'10 g',n:'Olivenöl (optional)',note:'Macht die Krume etwas zarter'},{a:'alles',n:'Hefewasser aus Schritt 1',note:''}],
+      ings_sauer:[{a:'100 g',n:'Vorteig aus Schritt 1',note:''},{a:'400 g',n:'Dinkelmehl hell (Typ 630, CH: Dinkelweissmehl)',note:''},{a:'50 g',n:'Dinkelvollkornmehl',note:''},{a:'290 g',n:'Wasser, lauwarm (ca. 28°C)',note:'Zusammen mit dem Vorteig ca. 67 % Hydration'},{a:'10 g',n:'Salz',note:''},{a:'2 g',n:'Frischhefe (optional)',note:'Als Sicherheit, falls der Sauerteig schwach ist'}],
+      desc_hefe:'Mehl, Salz und Hefewasser in die Schüssel. 5 Minuten auf Stufe 1, dann 3 Minuten auf Stufe 2 kneten, bis der Teig gerade glatt ist. Öl erst ganz am Schluss kurz einarbeiten. <strong>Nicht länger als 8 Minuten kneten.</strong>',
+      desc_sauer:'<strong>Am Abend, ca. 18:00.</strong> Vorteig, Mehl und Wasser grob vermischen und 20 Minuten ruhen lassen (Autolyse). Dann Salz (und Hefe) zugeben und 3 Minuten auf Stufe 1, 2–3 Minuten auf Stufe 2 kneten. Nicht überkneten.',
+      info:{warum:'Dinkelgluten baut sich schnell auf, reisst aber auch schnell. Zu langes Kneten macht den Teig schmierig und die Brötchen laufen flach. Den Rest der Stabilität holst du dir mit Dehnen und Falten.',temp:'Teigtemperatur nach dem Kneten: Hefe-Variante 20–22°C (kühl, wegen der Nacht im Kühlschrank), Sauerteig-Variante 24–26°C.',exp:'Bis 30 % Dinkelvollkornmehl möglich, dann 10–15 g mehr Wasser nehmen. 30 g Sonnenblumen- oder Kürbiskerne (vorher eingeweicht) am Schluss untermischen.',acht:'Wird der Teig plötzlich weich, glänzend und klebrig, ist er überknetet. Nicht mit Mehl retten, sondern sofort in die Gare und vorsichtig falten.'}
+    },
+    {
+      title:'Stockgare', time_hefe:'30 min + Nacht', time_sauer:'2,5–3 h',
+      timers:{hefe:1800,sauer:9900},
+      desc_hefe:'Teig in eine leicht geölte Box geben, abdecken. Nach 30 Minuten einmal dehnen und falten. <strong>Ca. 21:00</strong> abgedeckt in den Kühlschrank, 10–12 Stunden.',
+      desc_sauer:'Teig in eine geölte Schüssel geben, abdecken. Nach 30 und nach 60 Minuten dehnen und falten. Danach ungestört bei Raumtemperatur gehen lassen. <strong>Bei 50–60 % mehr Volumen stoppen</strong>, nicht verdoppeln lassen.',
+      ings:[],
+      info:{warum:'Bei der Hefe-Variante passiert die Hauptgare kalt über Nacht. Das gibt Aroma und Zucker für die Bräunung. Beim Sauerteig wird früh gestoppt, weil Dinkel weniger Gärstabilität hat und leicht zusammenfällt.',temp:'Kühlschrank 4–6°C: 10–12 h. Sauerteig bei 24°C: ca. 2,5 h, bei 21°C: ca. 3,5 h.',exp:'Hefe-Variante: Wer am gleichen Tag backen will, lässt den Teig 1,5 h bei Raumtemperatur gehen statt über Nacht. Die Kruste wird dann etwas heller.',acht:'Übergare: Der Teig wird flach, schmierig und riecht stark nach Alkohol oder Säure. Lieber 20 Minuten früher formen.'}
+    },
+    {
+      title:'Teilen & Formen', time:'10 min',
+      desc_hefe:'<strong>Am Morgen, ca. 07:00.</strong> Teig kalt auf eine leicht bemehlte Fläche stürzen, in {n} gleiche Stücke à ca. 105 g abstechen. Sanft rundschleifen und mit dem Schluss nach unten auf ein Backpapier setzen.',
+      desc_sauer:'<strong>Ca. 21:00.</strong> Teig auf eine leicht bemehlte Fläche stürzen, in {n} gleiche Stücke à ca. 110 g abstechen. Rundschleifen und mit dem Schluss nach unten auf ein bemehltes Backpapier oder Bäckerleinen setzen.',
+      ings:[],
+      info:{warum:'Rundschleifen baut Spannung an der Oberfläche auf. Dadurch gehen die Brötchen im Ofen in die Höhe statt in die Breite.',temp:'Kalter Teig lässt sich deutlich leichter formen und klebt weniger.',exp:'Für Stangen: Stück flach drücken, aufrollen und leicht länglich rollen. Für Kernbrötchen die Oberseite befeuchten und in Saaten drücken.',acht:'Nicht zu fest drücken, sonst entweicht das Gas. Mit nassen statt bemehlten Händen arbeiten, wenn der Teig klebt.'}
+    },
+    {
+      title:'Stückgare', time_hefe:'30–40 min', time_sauer:'10–14 h Kühlschrank',
+      timers:{hefe:2100},
+      desc_hefe:'Teiglinge abdecken und 30–40 Minuten bei Raumtemperatur gehen lassen. In der Zwischenzeit den Ofen vorheizen (nächster Schritt).',
+      desc_sauer:'Teiglinge abdecken und für 10–14 Stunden in den Kühlschrank stellen. Sie werden am Morgen direkt kalt gebacken.',
+      ings:[],
+      info:{warum:'In der Stückgare entspannt der Teig und bildet die Gase für den Ofentrieb. Kalt gegarte Teiglinge lassen sich sauberer einschneiden und reissen schöner auf.',temp:'Raumtemperatur 22°C: 30–40 min. Kühlschrank 4–6°C: 10–14 h.',exp:'Drücktest: Finger leicht eindrücken. Die Delle soll langsam und nicht ganz zurückfedern.',acht:'Zu lange Stückgare bei Raumtemperatur macht die Brötchen flach. Dinkel lieber etwas knapp gegart in den Ofen geben.'}
+    },
+    {
+      title:'Ofen vorheizen', time:'45 min', timerSec:2700,
+      desc_hefe:'Ofen mit dem Backblech auf mittlerer Schiene und einer ofenfesten Schale auf dem Boden auf 250°C Ober-/Unterhitze vorheizen.',
+      desc_sauer:'<strong>Am Morgen, ca. 07:00.</strong> Ofen mit dem Backblech auf mittlerer Schiene und einer ofenfesten Schale auf dem Boden auf 250°C Ober-/Unterhitze vorheizen. Die Teiglinge bleiben so lange im Kühlschrank.',
+      ings:[],
+      info:{warum:'Ein heisses Blech gibt sofort Hitze von unten. Das sorgt für Ofentrieb und einen knusprigen Boden.',temp:'Der Ofen braucht länger, als die Anzeige verspricht. 45 Minuten sind sicher, ein Ofenthermometer hilft.',exp:'Mit einem Backstein wird der Boden noch knuspriger. Dann eine volle Stunde vorheizen.',acht:'Beim Öffnen der Ofentür und beim Dampf: Gesicht weg, heisser Dampf verbrüht.'}
+    },
+    {
+      title:'Einschneiden & Backen', time:'20–24 min', timerSec:1320,
+      timers:{hefe:1320,sauer:1440},
+      desc_hefe:'Teiglinge mit Wasser besprühen und längs oder kreuzweise 1 cm tief einschneiden. Mit dem Backpapier aufs heisse Blech ziehen, sofort eine Tasse heisses Wasser in die Schale giessen. Auf 230°C zurückschalten. Nach 10 Minuten die Tür kurz öffnen, damit der Dampf entweicht, Schale herausnehmen. Weitere 10–12 Minuten kräftig braun backen.',
+      desc_sauer:'Teiglinge <strong>direkt kalt aus dem Kühlschrank</strong> mit Wasser besprühen und 1 cm tief einschneiden. Aufs heisse Blech ziehen, sofort eine Tasse heisses Wasser in die Schale giessen. Auf 230°C zurückschalten. Nach 10 Minuten Dampf ablassen, Schale herausnehmen. Weitere 12–14 Minuten kräftig braun backen.',
+      ings:[],
+      info:{warum:'Dampf hält die Oberfläche am Anfang weich, damit die Brötchen aufgehen können. Ohne Dampf in der zweiten Hälfte trocknet die Kruste aus und wird knusprig.',temp:'Start 250°C, dann 230°C. Fertig sind die Brötchen bei dunkelgoldbrauner Farbe und hohlem Klang beim Klopfen auf die Unterseite.',exp:'Dunkler backen ergibt mehr Röstaroma und eine Kruste, die länger knusprig bleibt.',acht:'Zu hell gebacken werden Dinkelbrötchen schnell weich und zäh. Lieber 2 Minuten länger.'}
+    },
+    {
+      title:'Nachtrocknen & Auskühlen', time:'5 + 20 min', timerSec:300,
+      desc:'Ofen ausschalten und die Brötchen bei leicht geöffneter Tür noch 5 Minuten im Ofen lassen. Dann auf einem Gitter mindestens 20 Minuten auskühlen lassen.',
+      ings:[],
+      info:{warum:'In der Restwärme verdampft die Feuchtigkeit aus der Kruste. Sie bleibt dadurch deutlich länger knusprig.',temp:'Ofentür einen Spalt offen, zum Beispiel mit einem Holzlöffel eingeklemmt.',exp:'Ausgekühlte Brötchen einfrieren und bei Bedarf 8–10 Minuten bei 200°C aufbacken.',acht:'Nicht in Plastik aufbewahren, sonst wird die Kruste weich. Papiertüte oder Brotkasten.'}
+    }
+  ]
+};
+function updateDinkelbrInfo(){
+  const el=document.getElementById('dibInfo');if(!el)return;
+  const mehl=recipeFlour.dinkelbr||500,v=vesselState.dinkelbr||'hefe';
+  el.textContent=Math.round(mehl/500*8)+' Brötchen à ca. '+(v==='sauer'?110:105)+' g Teig';
+}
+
 // ── REZEPTAUSWAHL (Startseite) ───────────────────────────────
 const CATALOG=[
   {group:'Sauerteig-Grundlagen',cat:'sauer',items:[
@@ -1400,11 +1506,13 @@ const CATALOG=[
     {key:'helles',grain:'dinkel',ico:'🌿',title:'Helles Dinkel-Sauerteigbrot',desc:'Mild und nussig, kürzere Knet- und Gärzeiten',time:'Abend + Tag',level:'Mittel'},
     {key:'helles',grain:'weizen',ico:'🥖',title:'Helles Sauerteigbrot',desc:'Weizensauerteig ohne Hefe, mild und fein',time:'Abend + Tag',level:'Mittel'},
     {key:'mischbrot',ico:'🍞',title:'Helles Roggenmischbrot 60/40',desc:'Mild, fluffig, hält lange frisch',time:'2 Tage',level:'Mittel'},
-    {key:'ciabatta',ico:'🥖',title:'Sauerteig-Ciabatta',desc:'Luftig mit offener Porung, mit Poolish',time:'2 Abende + Morgen',level:'Mittel'}
+    {key:'ciabatta',ico:'🥖',title:'Sauerteig-Ciabatta',desc:'Luftig mit offener Porung, mit Poolish',time:'2 Abende + Morgen',level:'Mittel'},
+    {key:'dinkelbr',form:'sauer',ico:'🌾',title:'Knusprige Dinkelbrötchen mit Sauerteig',desc:'Ohne Honig, über Nacht kalt gegart, kalt gebacken',time:'Tag + Nacht',level:'Mittel'}
   ]},
   {group:'Hefebrot & Zopf',cat:'hefe',items:[
     {key:'weizen',ico:'🥪',title:'Weizenbrot',desc:'Einfaches Alltagsbrot, auch über Nacht',time:'ca. 4 h',level:'Einfach'},
-    {key:'zopf',ico:'🧈',title:'CH-Butterzopf',desc:'Weich, goldgelb, mit Butter',time:'ca. 4 h',level:'Mittel'}
+    {key:'zopf',ico:'🧈',title:'CH-Butterzopf',desc:'Weich, goldgelb, mit Butter',time:'ca. 4 h',level:'Mittel'},
+    {key:'dinkelbr',form:'hefe',ico:'🌾',title:'Knusprige Dinkelbrötchen',desc:'Mit wenig Hefe, ohne Honig, Teig über Nacht im Kühlschrank',time:'Abend + Morgen',level:'Einfach'}
   ]},
   {group:'Laugengebäck',cat:'lauge',items:[
     {key:'laugen',form:'brezel',ico:'🥨',title:'Schwäbische Laugenbrezeln',desc:'Knusprige Arme, weicher Bauch, tiefbraun',time:'ca. 3 h',level:'Mittel'},
@@ -1445,7 +1553,7 @@ function openRecipe(key,form,grain){
 }
 
 function initHome(){
-  ['starter','roggen','helles','weizen','zopf','ciabatta','mischbrot','laugen'].forEach(k=>{
+  ['starter','roggen','helles','weizen','zopf','ciabatta','mischbrot','laugen','dinkelbr'].forEach(k=>{
     const p=document.getElementById('page-'+k);
     if(p)p.insertAdjacentHTML('afterbegin','<button class="back-link" onclick="showPage(\'home\')">← Alle Rezepte</button>');
   });
@@ -1467,6 +1575,7 @@ renderRecipe('weizen');
 renderRecipe('zopf');
 renderRecipe('mischbrot');
 renderRecipe('laugen');
+renderRecipe('dinkelbr');
 renderRecipe('helles');
 renderRecipe('starter');
 calcCiabatta();
